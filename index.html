@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Demy's — Buy and Sell</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/css/main.css"/>
+  <style>
+    /* Scrolled topbar with category tabs */
+    .topbar-cats {
+      display: none;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex: 1;
+      margin: 0 12px;
+    }
+    .topbar-cats::-webkit-scrollbar { display: none; }
+    .topbar.scrolled .topbar-search { display: none; }
+    .topbar.scrolled .topbar-cats   { display: flex; }
+
+    .topbar-cat-tab {
+      white-space: nowrap;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+      flex-shrink: 0;
+    }
+    .topbar-cat-tab:hover,
+    .topbar-cat-tab.active {
+      background: var(--surface2);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .topbar-cat-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* Hero */
+    .hero-v2 {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 360px;
+      overflow: hidden;
+      position: relative;
+      transition: background var(--transition);
+    }
+    .hero-v2-left {
+      padding: 56px 40px 56px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      z-index: 2;
+    }
+    .hero-v2-title {
+      font-size: clamp(36px, 5vw, 58px);
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+    .hero-v2-title span { color: var(--accent); }
+    .hero-v2-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 300px;
+      margin-bottom: 0;
+    }
+    .hero-v2-right {
+      position: relative;
+      display: grid;
+      grid-template-rows: 1fr;
+      overflow: hidden;
+    }
+    /* Diagonal split image */
+    .hero-img-main {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      clip-path: polygon(8% 0%, 100% 0%, 100% 100%, 0% 100%);
+    }
+    .hero-img-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--surface) 18%, transparent 40%);
+      z-index: 1;
+    }
+    /* CTA box floating over hero */
+    .hero-cta-box {
+      position: absolute;
+      bottom: 28px;
+      right: 28px;
+      left: 28px;
+      background: color-mix(in srgb, var(--bg) 90%, transparent);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px 18px;
+      z-index: 3;
+      box-shadow: var(--shadow-lg);
+    }
+    .hero-cta-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .hero-search-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 9px 12px;
+      margin-bottom: 14px;
+      transition: border-color var(--transition);
+    }
+    .hero-search-row:focus-within { border-color: var(--accent); }
+    .hero-search-row input { flex: 1; border: none; background: transparent; font-size: 14px; color: var(--text); outline: none; }
+    .hero-search-row input::placeholder { color: var(--muted2); }
+    .hero-divider-or { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .hero-divider-or::before, .hero-divider-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .hero-divider-or span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+
+    @media (max-width: 768px) {
+      .hero-v2 { grid-template-columns: 1fr; }
+      .hero-v2-right { display: none; }
+      .hero-v2-left { padding: 40px 24px 36px; }
+    }
+
+    /* Category Carousel */
+    .carousel-section { padding: 40px 0 32px; }
+    .carousel-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .carousel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .carousel-title { font-size: 22px; }
+    .carousel-arrows { display: flex; gap: 8px; }
+    .carousel-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background var(--transition), border-color var(--transition);
+      font-size: 16px;
+    }
+    .carousel-btn:hover { background: var(--surface2); border-color: var(--border2); }
+    .carousel-btn:disabled { opacity: 0.35; cursor: default; }
+
+    .carousel-track-wrap { overflow: hidden; }
+    .carousel-track {
+      display: flex;
+      gap: 14px;
+      transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    .carousel-slide {
+      flex-shrink: 0;
+      width: calc((100%) / var(--visible, 4) - 12px);
+    }
+
+    /* Dots */
+    .carousel-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 16px;
+    }
+    .carousel-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--border2);
+      cursor: pointer;
+      transition: background var(--transition), width var(--transition);
+    }
+    .carousel-dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+
+    /* Recommended For You */
+    .rec-section { padding: 8px 0 40px; }
+    .rec-login-gate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      background: var(--surface);
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      text-align: center;
+    }
+    .rec-login-illo {
+      font-size: 64px;
+      line-height: 1;
+      flex-shrink: 0;
+      animation: floatIllo 3s ease-in-out infinite;
+    }
+    @keyframes floatIllo { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .rec-login-text h3 { font-size: 20px; margin-bottom: 8px; }
+    .rec-login-text p  { font-size: 14px; color: var(--muted); margin-bottom: 20px; max-width: 260px; }
+    .rec-login-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    /* Recent Deals Near You */
+    .recent-section { padding: 0 0 48px; }
+    .location-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .location-header h2 { font-size: 20px; }
+    .loc-pin-icon { color: var(--accent); display: flex; align-items: center; }
+    .loc-change-pill {
+      display: none;
+      font-size: 11px; font-weight: 500;
+      background: var(--surface2); color: var(--muted);
+      padding: 2px 8px; border-radius: 6px;
+      transition: background var(--transition), color var(--transition);
+    }
+    .location-header:hover .loc-change-pill { display: inline; }
+    .location-header:hover .loc-change-pill:hover { background: var(--accent); color: #fff; }
+
+    /* Footer v2 */
+    .footer-v2 {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 48px 0 0;
+      transition: background var(--transition);
+    }
+    .footer-v2-grid {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px 64px;
+      padding-bottom: 40px;
+    }
+    .footer-about-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.6px;
+      margin-bottom: 10px;
+    }
+    .footer-about-desc {
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 320px;
+      margin-bottom: 20px;
+    }
+    .footer-links-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .footer-links-list a {
+      font-size: 13.5px;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+      transition: color var(--transition);
+    }
+    .footer-links-list a::before { content: '·'; color: var(--border2); }
+    .footer-links-list a:hover { color: var(--accent); }
+
+    .footer-feedback-label {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .footer-feedback-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+    .footer-feedback-form { display: flex; flex-direction: column; gap: 10px; }
+    .footer-feedback-form textarea {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-size: 13.5px;
+      color: var(--text);
+      resize: none;
+      height: 80px;
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+      font-family: 'DM Sans', sans-serif;
+    }
+    .footer-feedback-form textarea:focus { border-color: var(--accent); }
+    .footer-feedback-form textarea::placeholder { color: var(--muted2); }
+    .footer-feedback-send {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: var(--radius);
+      font-size: 13.5px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: background var(--transition), transform 0.15s;
+    }
+    .footer-feedback-send:hover { background: var(--accent-h); transform: translateY(-1px); }
+
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .footer-back-top {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted); cursor: pointer;
+      background: none; border: none;
+      font-family: 'DM Sans', sans-serif;
+      transition: color var(--transition);
+    }
+    .footer-back-top:hover { color: var(--accent); }
+
+    @media (max-width: 768px) {
+      .footer-v2-grid { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar" id="topbar">
+  <a href="index.html" class="topbar-logo">Logo</a>
+
+  <!-- Normal state: search bar -->
+  <form class="topbar-search" onsubmit="handleSearch(event)">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <input type="text" id="topbarQ" placeholder="Search deals…"/>
+  </form>
+
+  <!-- Scrolled state: category tabs -->
+  <div class="topbar-cats" id="topbarCats">
+    <!-- injected by JS -->
+  </div>
+
+  <nav class="topbar-nav" id="topbarNav"><!-- injected by JS --></nav>
+</header>
+
+<div id="flashContainer"></div>
+<main class="page-main">
+
+<!-- HERO -->
+<section class="hero-v2" id="hero">
+  <div class="hero-v2-left">
+    <h1 class="hero-v2-title">Demy's<br/><span>Buy &amp; Sell</span></h1>
+    <p class="hero-v2-desc">Discover deals with good prices made by the community, for the community.</p>
+  </div>
+
+  <div class="hero-v2-right">
+    <img class="hero-img-main"
+      src="https://images.unsplash.com/photo-1481437156560-3205f6a55735?w=900&q=80"
+      alt="Marketplace items"/>
+    <div class="hero-img-overlay"></div>
+
+    <!-- Floating CTA box -->
+    <div class="hero-cta-box">
+      <p class="hero-cta-label">Discover Deals</p>
+      <form onsubmit="handleSearch(event)">
+        <div class="hero-search-row">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input type="text" id="heroQ" placeholder="What are you looking for?"/>
+        </div>
+      </form>
+      <div class="hero-divider-or"><span>or</span></div>
+      <p class="hero-cta-label">Make One</p>
+      <a href="pages/sell.php" class="btn-accent btn-block" style="text-align:center;justify-content:center">Start Selling</a>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+
+  <!-- POPULAR CATEGORIES — Carousel -->
+  <section class="carousel-section" id="catSection">
+    <p class="carousel-meta" id="catMeta">Loading…</p>
+    <div class="carousel-header">
+      <h2 class="carousel-title">Popular Categories</h2>
+      <div style="display:flex;align-items:center;gap:12px">
+        <a href="pages/search.html" class="section-link" style="margin:0">Browse all →</a>
+        <div class="carousel-arrows">
+          <button class="carousel-btn" id="catPrev">‹</button>
+          <button class="carousel-btn" id="catNext">›</button>
+        </div>
+      </div>
+    </div>
+    <div class="carousel-track-wrap" id="catTrackWrap">
+      <div class="carousel-track" id="catTrack" style="--visible:4"></div>
+    </div>
+    <div class="carousel-dots" id="catDots"></div>
+  </section>
+
+  <!-- RECOMMENDED FOR YOU -->
+  <section class="rec-section">
+    <div class="section-header">
+      <h2 class="section-title">Recommended For You</h2>
+      <a href="pages/search.html" class="section-link">See all →</a>
+    </div>
+    <div id="recContent">
+      <!-- injected by JS: grid or login gate -->
+    </div>
+  </section>
+
+  <!-- RECENT DEALS NEAR YOU -->
+  <section class="recent-section">
+    <div class="location-header" id="locationHeader">
+      <h2>Recent Deals Near You</h2>
+      <span class="loc-pin-icon">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </span>
+      <span id="locLabel" style="font-size:14px;color:var(--muted)">your area</span>
+      <span class="loc-change-pill">change?</span>
+    </div>
+
+    <div class="grid-3" id="recentGrid">
+      <!-- injected by JS -->
+    </div>
+
+    <div style="text-align:center;margin-top:28px">
+      <a href="pages/search.html" class="btn-ghost">View all listings</a>
+    </div>
+  </section>
+
+</div><!-- /container -->
+</main>
+
+<!--FOOTER v2-->
+<footer class="footer-v2">
+  <div class="footer-v2-grid">
+
+    <!-- About Us + links -->
+    <div>
+      <div class="footer-about-logo">Logo</div>
+      <p class="footer-about-desc">
+        A community-driven buy and sell marketplace — connecting buyers and sellers with fair prices and honest deals.
+      </p>
+      <div class="footer-links-list">
+        <a href="pages/search.html">Browse Listings</a>
+        <a href="pages/sell.php">Start Selling</a>
+        <a href="pages/register.php">Join the Community</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </div>
+
+    <!-- Post / Feedback form -->
+    <div>
+      <div class="footer-feedback-label">Post locals 📍</div>
+      <p class="footer-feedback-sub">Found a great deal or have feedback about the platform? Let the community know.</p>
+      <div class="footer-feedback-form" id="feedbackForm">
+        <textarea id="feedbackText" placeholder="Share a tip, report an issue, or suggest an improvement…"></textarea>
+        <button class="footer-feedback-send" onclick="submitFeedback()">Send →</button>
+      </div>
+      <div id="feedbackThanks" style="display:none;padding:16px;background:var(--success-light);color:var(--success);border-radius:var(--radius);font-size:13.5px;font-weight:500">
+        ✓ Thanks for your feedback!
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bottom" style="border-top:1px solid var(--border)">
+    <span>© 2026 Demy's — Buy &amp; Sell Community Marketplace</span>
+    <button class="footer-back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+      ↑ Back to top
+    </button>
+  </div>
+</footer>
+
+<!--SCRIPTS-->
+<script src="assets/js/main.js"></script>
+<script>
+//Search handler
+function handleSearch(e) {
+  e.preventDefault();
+  const q = (document.getElementById('heroQ')?.value || document.getElementById('topbarQ')?.value || '').trim();
+  window.location.href = `pages/search.html?q=${encodeURIComponent(q)}`;
+}
+
+// Carousel state
+let catData    = [];
+let catPage    = 0;
+let catVisible = 4;
+
+function getCatVisible() {
+  return window.innerWidth < 600 ? 1
+       : window.innerWidth < 900 ? 2
+       : window.innerWidth < 1100 ? 3
+       : 4;
+}
+
+function renderCarousel() {
+  catVisible = getCatVisible();
+  const track = document.getElementById('catTrack');
+  track.style.setProperty('--visible', catVisible);
+
+  const totalSlides = catData.length;
+  const maxPage     = Math.max(0, totalSlides - catVisible);
+  catPage = Math.min(catPage, maxPage);
+
+  const slideW = document.getElementById('catTrackWrap').offsetWidth;
+  const offset = catPage * ((slideW / catVisible) + 14 / catVisible);
+  track.style.transform = `translateX(-${catPage * (100 / catVisible + (14 / slideW * 100))}%)`;
+
+  // Simpler: translate by percent of one slide
+  const pct = catPage * (100 / catVisible);
+  track.style.transform = `translateX(calc(-${pct}% - ${catPage * 14}px))`;
+
+  // Update slide widths
+  document.querySelectorAll('.carousel-slide').forEach(s => {
+    s.style.width = `calc(${100 / catVisible}% - ${14 * (catVisible-1) / catVisible}px)`;
+  });
+
+  // Dots
+  const dotsEl = document.getElementById('catDots');
+  const pages  = Math.ceil(totalSlides / catVisible);
+  dotsEl.innerHTML = Array.from({length: pages}, (_, i) =>
+    `<div class="carousel-dot ${i === Math.floor(catPage / catVisible) ? 'active' : ''}"
+         onclick="goPage(${i * catVisible})"></div>`
+  ).join('');
+
+  document.getElementById('catPrev').disabled = catPage === 0;
+  document.getElementById('catNext').disabled = catPage >= maxPage;
+}
+
+function goPage(p) {
+  catPage = p;
+  renderCarousel();
+}
+
+document.getElementById('catPrev').addEventListener('click', () => {
+  catPage = Math.max(0, catPage - 1);
+  renderCarousel();
+});
+document.getElementById('catNext').addEventListener('click', () => {
+  const maxPage = Math.max(0, catData.length - catVisible);
+  catPage = Math.min(maxPage, catPage + 1);
+  renderCarousel();
+});
+window.addEventListener('resize', renderCarousel);
+
+// Scrolled topbar with category tabs
+const topbarEl = document.getElementById('topbar');
+const heroEl   = document.getElementById('hero');
+new IntersectionObserver(([entry]) => {
+  topbarEl.classList.toggle('scrolled', !entry.isIntersecting);
+}, { threshold: 0.15 }).observe(heroEl);
+
+// Geolocation label
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(pos => {
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`)
+      .then(r => r.json())
+      .then(d => {
+        const area = d.address?.city || d.address?.town || d.address?.suburb || 'your area';
+        document.getElementById('locLabel').textContent = area;
+      })
+      .catch(() => {});
+  }, () => {});
+}
+
+// Feedback form
+function submitFeedback() {
+  const txt = document.getElementById('feedbackText').value.trim();
+  if (!txt) return;
+  document.getElementById('feedbackForm').style.display  = 'none';
+  document.getElementById('feedbackThanks').style.display = 'block';
+}
+
+// Main loader
+async function loadHome() {
+  const [cats, items] = await Promise.all([
+    fetch('data/categories.json').then(r => r.json()),
+    fetch('data/items.json').then(r => r.json())
+  ]);
+
+  catData = cats;
+  const totalItems = items.filter(i => i.status === 'active').length;
+
+  // Meta count
+  document.getElementById('catMeta').textContent =
+    `${totalItems.toLocaleString()} products listed across ${cats.length} categories`;
+
+  // Carousel slides
+  const track = document.getElementById('catTrack');
+  track.innerHTML = cats.map(c => `
+    <a href="pages/search.html?category=${c.categoryID}" class="carousel-slide cat-card">
+      <img src="${c.image}" alt="${c.category_name}" loading="lazy"/>
+      <div class="cat-card-overlay">
+        <div class="cat-card-name">${c.category_name}</div>
+        <div class="cat-card-count">${c.count} deals</div>
+      </div>
+    </a>
+  `).join('');
+
+  // Topbar category tabs
+  const tabsEl = document.getElementById('topbarCats');
+  tabsEl.innerHTML = ['All', ...cats.map(c => c.category_name)].map((name, i) => {
+    const href = i === 0 ? 'pages/search.html' : `pages/search.html?category=${i}`;
+    return `<a href="${href}" class="topbar-cat-tab ${i===0?'active':''}"
+               onclick="document.querySelectorAll('.topbar-cat-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
+              ${name}
+            </a>`;
+  }).join('');
+
+  renderCarousel();
+
+  // Recommended For You
+  const session  = getSession();
+  const recEl    = document.getElementById('recContent');
+  const active   = items.filter(i => i.status === 'active');
+
+  if (!session) {
+    // Login gate
+    recEl.innerHTML = `
+      <div class="rec-login-gate">
+        <div class="rec-login-illo">🛍️</div>
+        <div class="rec-login-text">
+          <h3>Personalized just for you</h3>
+          <p>Log in to see items recommended based on your browsing and wishlist.</p>
+          <div class="rec-login-actions">
+            <a href="pages/login.php" class="btn-accent">Log In to View</a>
+            <a href="pages/register.php" class="btn-ghost">Sign Up Free</a>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    // Show a curated set — shuffle for "personalized" feel
+    const shuffled = [...active].sort(() => Math.random() - 0.5).slice(0, 6);
+    recEl.innerHTML = `<div class="grid-3">${shuffled.map(i => itemCard(i, '')).join('')}</div>`;
+    applyWishState();
+  }
+
+  // Recent Deals Near You — just latest 6
+  const recent = active.slice(0, 6);
+  document.getElementById('recentGrid').innerHTML = recent.map(i => itemCard(i, '')).join('');
+  applyWishState();
+}
+
+loadHome();
+</script>
+</body>
+</html>
