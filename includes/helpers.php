@@ -13,7 +13,7 @@ function isLoggedIn(): bool {
 
 function requireLogin(): void {
     if (!isLoggedIn()) {
-        header('Location: /pages/login.php');
+        header('Location: /demys/pages/login.php');
         exit;
     }
 }

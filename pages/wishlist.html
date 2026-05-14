@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Wishlist — Demy's</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">Demy's</a>
+  <form class="topbar-search" onsubmit="handleSearch(event)">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <input type="text" id="topbarQ" placeholder="Search deals…"/>
+  </form>
+  <nav class="topbar-nav" id="topbarNav"></nav>
+</header>
+
+<div id="flashContainer"></div>
+
+<main class="page-main">
+<div class="container">
+  <section class="section">
+    <div class="section-header">
+      <h1 class="section-title">My Wishlist</h1>
+      <span class="section-count" id="wishCount"></span>
+    </div>
+    <div id="wishGrid" class="grid-4"></div>
+  </section>
+</div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-logo">Demy's</span>
+    <span class="footer-copy">© 2026 — Buy &amp; Sell community marketplace</span>
+    <div class="footer-links">
+      <a href="search.html">Browse</a><a href="sell.php">Sell</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/js/main.js"></script>
+<script>
+  function handleSearch(e) {
+    e.preventDefault();
+    window.location.href = `search.html?q=${encodeURIComponent(document.getElementById('topbarQ').value.trim())}`;
+  }
+
+  async function loadWishlist() {
+    const session = getSession();
+    if (!session) {
+      window.location.href = 'login.php';
+      return;
+    }
+
+    // Wishlist IDs stored in localStorage
+    const wished = getWishlist();
+    const grid   = document.getElementById('wishGrid');
+    const count  = document.getElementById('wishCount');
+
+    if (wished.length === 0) {
+      count.textContent = '0 items';
+      grid.innerHTML = `
+        <div class="empty" style="grid-column:1/-1">
+          <div class="empty-icon">🤍</div>
+          <h3>Your wishlist is empty</h3>
+          <p>Heart items you love while browsing.</p>
+        </div>`;
+      return;
+    }
+
+    const items = await fetch('../data/items.json').then(r => r.json());
+    const wished_items = items.filter(i => wished.includes(i.itemID) && i.status === 'active');
+
+    count.textContent = `${wished_items.length} item${wished_items.length!==1?'s':''}`;
+
+    if (wished_items.length === 0) {
+      grid.innerHTML = `
+        <div class="empty" style="grid-column:1/-1">
+          <div class="empty-icon">😕</div>
+          <h3>Some items may no longer be available</h3>
+          <p><a href="search.html" class="text-accent">Browse current listings →</a></p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = wished_items.map(i => itemCardWishlist(i)).join('');
+  }
+
+  function itemCardWishlist(item) {
+    const img = item.images?.[0]
+      ? `<img class="item-card-img" src="${item.images[0]}" alt="${item.title}" loading="lazy"/>`
+      : `<div class="item-card-img" style="height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--surface2)">📦</div>`;
+
+    return `
+      <div class="card item-card" style="position:relative">
+        <a href="item.html?id=${item.itemID}">
+          <div class="item-card-img-wrap">${img}</div>
+          <div class="card-body">
+            <p class="item-card-title">${item.title}</p>
+            <p class="item-card-price">${formatPrice(item.price)}</p>
+            <div class="item-card-meta">
+              <span class="badge">${item.category_name}</span>
+              <span>·</span><span>${timeAgo(item.created_at)}</span>
+            </div>
+          </div>
+        </a>
+        <button class="wish-btn wished"
+          onclick="removeWish(${item.itemID}, this)"
+          style="position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:white;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:var(--shadow-sm)">
+          ❤️
+        </button>
+      </div>`;
+  }
+
+  function removeWish(itemID, btn) {
+    toggleWish(itemID, btn);
+    // Remove card from DOM after toggle
+    setTimeout(() => {
+      const card = btn.closest('.card');
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.95)';
+      card.style.transition = '0.3s';
+      setTimeout(() => { card.remove(); loadWishlist(); }, 300);
+    }, 100);
+  }
+
+  loadWishlist();
+</script>
+</body>
+</html>

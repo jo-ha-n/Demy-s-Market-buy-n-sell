@@ -1,0 +1,28 @@
+[
+  {
+    "transactionID": 1,
+    "sellerID": 2,
+    "seller_name": "juandelacruz",
+    "buyerID": 1,
+    "buyer_name": "you",
+    "itemID": 1,
+    "item_title": "Sony WH-1000XM5 Headphones",
+    "price": 7500,
+    "date": "2026-04-20",
+    "payment_method": "GCash",
+    "paid_amount": 7500
+  },
+  {
+    "transactionID": 2,
+    "sellerID": 1,
+    "seller_name": "you",
+    "buyerID": 3,
+    "buyer_name": "mariareyes",
+    "itemID": 5,
+    "item_title": "Minimalist Analog Watch",
+    "price": 1200,
+    "date": "2026-03-15",
+    "payment_method": "Bank Transfer",
+    "paid_amount": 1200
+  }
+]
