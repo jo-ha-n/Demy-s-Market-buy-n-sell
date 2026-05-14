@@ -10,14 +10,14 @@ CREATE TABLE IF NOT EXISTS Category (
   category_name VARCHAR(80) NOT NULL
 ) ENGINE=InnoDB;
 
-INSERT IGNORE INTO Category (categoryID, category_name) VALUES
-  (1, 'Vehicles'),
-  (2, 'Devices'),
-  (3, 'Clothes'),
-  (4, 'Sports'),
-  (5, 'Furniture'),
-  (6, 'Books'),
-  (7, 'Others');
+-- INSERT IGNORE INTO Category (categoryID, category_name) VALUES
+--   (1, 'Vehicles'),
+--   (2, 'Devices'),
+--   (3, 'Clothes'),
+--   (4, 'Sports'),
+--   (5, 'Furniture'),
+--   (6, 'Books'),
+--   (7, 'Others');
 
 -- ── Tag ───────────────────────────────────────────────────────────
 -- Free-form tags for image-board style filtering (e.g. "vintage", "negotiable")
