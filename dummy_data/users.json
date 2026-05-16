@@ -1,8 +1,0 @@
-{
-    "columns": [
-        "userID", "email", "username", "password", "address", "contact_number", "role"
-    ],
-    "values": [
-        ["1", "username@email.com", "demy", "demy_password", "Etivac", "0999999", "buyer"]
-    ]
-}

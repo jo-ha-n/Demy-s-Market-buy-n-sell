@@ -1,8 +1,8 @@
 # Set up necessary prequisite dbs for the buy and sell website
-import os, sys, subprocess, json
+import os, sys, subprocess, json, sqlite3
 from typing import Callable, Any
 
-# Import msql connector, pip install if it does not exists
+# Import mysql connector, pip install if it does not exists
 package = "mysql-connector-python"
 try:
     import mysql.connector
@@ -14,15 +14,37 @@ except ImportError:
 finally:
     import mysql.connector
     from mysql.connector.abstracts import MySQLCursorAbstract
-    from mysql.connector.abstracts import MySQLConnectionAbstract
 
 
-def error_handling_sql(func: Callable[...]) -> Callable[...]:
+def generate_insert_sql(columns: dict[str], table: str) -> str:
+    palceholder = str.join(", ",(["%s"] * len(columns)))
+    columns = str.join(", ", columns)
+
+    return f"""INSERT INTO {table}({columns}) VALUES ({palceholder})"""
+
+def error_handling_sql(func: Callable[..., Any]) -> Callable[..., Any]:
     def wrapper(*args: Any, **kwargs: Any) -> Any:
+        cursor = next(
+            (
+                arg for arg in list(args) + list(kwargs.values())
+                if isinstance(arg, (MySQLCursorAbstract, sqlite3.Cursor))
+            ),
+            None,
+        )
+
         try:
             return func(*args, **kwargs)
+
         except mysql.connector.Error as e:
-            print(f"SQL ERROR: {e}")
+            if cursor is None or isinstance(cursor, MySQLCursorAbstract):
+                print(f"MySQL ERROR: {e.errno} - {e.msg}")
+
+        except sqlite3.Error as e:
+            if cursor is None or isinstance(cursor, sqlite3.Cursor):
+                print(f"SQLite ERROR: {e}")
+
+        except Exception as e:
+            print(f"Unexpected ERROR: {e}")
 
     return wrapper
 
@@ -39,8 +61,10 @@ def use_db(cursor: MySQLCursorAbstract, db_name: str) -> None:
     cursor.execute(f"USE {db_name}")
 
 @error_handling_sql
-def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -> None:
-    columns, values = None
+def insert_data_from_json(cursor: MySQLCursorAbstract | sqlite3.Cursor, path: os.PathLike[str]) -> None:
+    columns = None
+    values = None
+    table = None
 
     with open(path, 'r', encoding="utf-8") as file:
         data = json.load(file)
@@ -48,13 +72,16 @@ def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -
         try:
             columns = data["columns"]
             values = data["values"]
+            table = data["table"]
         except KeyError as e:
             print(e)
             return
-    
+        
+    cursor.executemany(generate_insert_sql(columns, table), values)
+    cursor._connection.commit()
 
 @error_handling_sql
-def execute_sql_script(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -> None:
+def execute_sql_script_from_file(cursor: MySQLCursorAbstract | sqlite3.Cursor, path: os.PathLike[str]) -> None:
     # Assuming sql command lines ends with a semi colon
     with open(path, encoding="utf-8") as f:
         commands = f.read().split(';')
@@ -88,9 +115,10 @@ def init():
     print(f"\t- pass: '{creds['pass']}'")
 
     root_path = os.path.dirname(__file__)
-    scripts_path = os.path.join(root_path, "sql", "setup")
-    dummy_data_path = os.path.join(root_path, "dummy_data")
-    dummy_db = "dummy_demys_db" # change this if the name of the dummy db is changed
+    schema_path = os.path.join(root_path, "sql", "setup", "tables.sql")
+    data_path = os.path.join(root_path, "data") 
+    dummy_data_path = os.path.join(data_path, "dummy_data")
+    test_data_path = os.path.join(data_path, "test_data")
 
     """
         NOTE: The script will look for sql files inside sql/setup, these scripts are only put 
@@ -98,44 +126,51 @@ def init():
               there.
     """
 
-    scripts = get_files(scripts_path, ".sql")
-
-    conn = mysql.connector.connect(
+    mysql_connection = mysql.connector.connect(
         host=creds['host'],
         user=creds['user'],
         password=creds['pass']
     )
-    cursor = conn.cursor()
+    mysql_cursor = mysql_connection.cursor()
+    
+    db_name = "demy_db"
 
-    for script in scripts:
-        execute_sql_script(cursor, script)
+    create_db(db_name)
+    use_db(db_name)
+    execute_sql_script_from_file(mysql_cursor, schema_path)
 
     """
-        NOTE: Inside the dummy_data folders there are json files, keep in mind that json file name 
-              must be the exact name of their corresponding table names e.g category table must have
-              category.json no more no less. The contents of the json file must have two things the
-              list of column values and the list of the actual values.
+        NOTE: Inside the dummy_data folders there are json files, inside the json files
+              are the table name, the columns and the values that you wanted to insert.
     """
 
-    print(f"Adding dummy data to {dummy_db} ......")
-
-    # the dummy data will be inserted into the dummy db of course
-    conn.database = dummy_db
+    print(f"Adding dummy data to {db_name} ......")
 
     if not os.path.exists(dummy_data_path):
-        exit(f"{dummy_data_path} PATH DOES NOT EXISTS!")
+        print(f"{dummy_data_path} PATH DOES NOT EXISTS!")
+        return
 
     dummy_data_files = get_files(dummy_data_path, ".json")
 
     print(f"Found {len(dummy_data_files)} files of dummy data inserting....")
 
     for file in dummy_data_files:
-        insert_data_from_json(cursor, file)
+        insert_data_from_json(mysql_cursor, file)
 
+    mysql_connection.close()
 
-    cursor.close()
-    conn.commit()
-    conn.close()
+    # Set up sqlite3 for testing
+    print("Setting up SQLITE3.....")
+    sqlite_connetion = sqlite3.connect(f"test_{db_name}.sqlite")
+    sqlite_cursor = sqlite_connetion.cursor()
+
+    execute_sql_script_from_file(sqlite_cursor, schema_path)
+    
+    test_data_files = get_files(test_data_path)
+
+    for file in test_data_files:
+        insert_data_from_json(sqlite_cursor, file)
+
 
 if __name__ == "__main__":
     init()
