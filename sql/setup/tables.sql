@@ -1,8 +1,8 @@
-CREATE DATABASE IF NOT EXISTS demys_db
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
+-- CREATE DATABASE IF NOT EXISTS demys_db
+--   CHARACTER SET utf8mb4
+--   COLLATE utf8mb4_unicode_ci;
 
-USE demys_db;
+-- USE demys_db;
 
 -- ── Category ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS Category (
