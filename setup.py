@@ -39,9 +39,11 @@ def create_db(cursor: MySQLCursorAbstract, db_name: str) -> None:
             COLLATE utf8mb4_unicode_ci"""
     )
 
+
 @error_handling_sql
 def use_db(cursor: MySQLCursorAbstract, db_name: str) -> None:
     cursor.execute(f"USE {db_name}")
+
 
 @error_handling_sql
 def drop_db(cursor: MySQLCursorAbstract, db_name: str) -> None:
@@ -49,7 +51,7 @@ def drop_db(cursor: MySQLCursorAbstract, db_name: str) -> None:
 
 
 @error_handling_sql
-def insert_data_from_json(cursor: MySQLCursorAbstract | sqlite3.Cursor, path: os.PathLike[str]) -> None:
+def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -> None:
     with open(path, 'r', encoding="utf-8") as file:
         data = json.load(file)
 
@@ -75,10 +77,11 @@ def insert_data_from_json(cursor: MySQLCursorAbstract | sqlite3.Cursor, path: os
 
 @error_handling_sql
 def execute_sql_script_from_file(
-    cursor: MySQLCursorAbstract | sqlite3.Cursor, path: os.PathLike[str]) -> None:
+    cursor: MySQLCursorAbstract, path: os.PathLike[str]) -> None:
     with open(path, encoding="utf-8") as f:
         content = f.read()
 
+    # split the sql statements then exec them one by one instead of exec as a whole
     for cmd in [cmd.strip() for cmd in content.split(';') if cmd.strip()]:
         cursor.execute(cmd)
 
@@ -123,7 +126,7 @@ def init():
 
     db_name = "demy_db"
 
-    print(f"Resetting '{db_name}'...")
+    print(f"Resetting '{db_name}'....")
     
     drop_db(mysql_cursor, db_name)
     create_db(mysql_cursor, db_name)
@@ -135,7 +138,7 @@ def init():
     use_db(mysql_cursor, db_name)
     execute_sql_script_from_file(mysql_cursor, schema_path)
 
-    print(f"Adding dummy data to {db_name} ......")
+    print(f"Adding dummy data to {db_name}....")
 
     if not os.path.exists(dummy_data_path):
         print(f"{dummy_data_path} PATH DOES NOT EXIST!")
