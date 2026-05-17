@@ -133,7 +133,7 @@ def init():
     db_name = "demy_db"
 
     if is_db_exists(mysql_cursor, db_name):
-        print(f"Existing {db_name} found!")
+        print(f"Existing '{db_name}' found!")
         print(f"Resetting '{db_name}'....")
         drop_db(mysql_cursor, db_name)
 
@@ -146,7 +146,7 @@ def init():
     use_db(mysql_cursor, db_name)
     execute_sql_script_from_file(mysql_cursor, schema_path)
 
-    print(f"Adding dummy data to {db_name}....")
+    print(f"Adding dummy data to '{db_name}'....")
 
     if not os.path.exists(dummy_data_path):
         print(f"{dummy_data_path} PATH DOES NOT EXIST!")
