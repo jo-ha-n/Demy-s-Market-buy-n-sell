@@ -52,6 +52,13 @@ def drop_db(cursor: MySQLCursorAbstract, db_name: str) -> None:
 
 
 @error_handling_sql
+def is_db_exists(cursor: MySQLCursorAbstract, db_name: str) -> bool:
+    cursor.execute(f"SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{db_name}'")
+
+    return cursor.fetchone()[0] == 1
+
+
+@error_handling_sql
 def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -> None:
     with open(path, 'r', encoding="utf-8") as file:
         data = json.load(file)
@@ -125,9 +132,11 @@ def init():
 
     db_name = "demy_db"
 
-    print(f"Resetting '{db_name}'....")
-    
-    drop_db(mysql_cursor, db_name)
+    if is_db_exists(mysql_cursor, db_name):
+        print(f"Existing {db_name} found!")
+        print(f"Resetting '{db_name}'....")
+        drop_db(mysql_cursor, db_name)
+
     create_db(mysql_cursor, db_name)
     use_db(mysql_cursor, db_name)
 

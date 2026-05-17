@@ -167,22 +167,52 @@ function updateUser(
     ?string $contact = null,
     ?string $role = null
 ): bool {
-    $db     = getDB();
+    $db = getDB();
     $fields = [];
-    $types  = '';
+    $types = '';
     $values = [];
 
-    if ($email    !== null) { $fields[] = 'email = ?';          $types .= 's'; $values[] = $email; }
-    if ($username !== null) { $fields[] = 'username = ?';       $types .= 's'; $values[] = $username; }
-    if ($password !== null) { $fields[] = 'password = ?';       $types .= 's'; $values[] = password_hash($password, PASSWORD_BCRYPT); }
-    if ($address  !== null) { $fields[] = 'address = ?';        $types .= 's'; $values[] = $address; }
-    if ($contact  !== null) { $fields[] = 'contact_number = ?'; $types .= 's'; $values[] = $contact; }
-    if ($role     !== null) { $fields[] = 'role = ?';           $types .= 's'; $values[] = $role; }
+    if ($email !== null) 
+    { 
+        $fields[] = 'email = ?';
+        $types   .= 's';
+        $values[] = $email;
+    }
+    if ($username !== null)
+    {
+        $fields[] = 'username = ?';
+        $types   .= 's';
+        $values[] = $username;
+    }
+    if ($password !== null)
+    {
+        $fields[] = 'password = ?';
+        $types   .= 's';
+        $values[] = password_hash($password, PASSWORD_BCRYPT);
+    }
+    if ($address !== null)
+    {
+        $fields[] = 'address = ?';
+        $types   .= 's';
+        $values[] = $address;
+    }
+    if ($contact  !== null) 
+    {
+        $fields[] = 'contact_number = ?';
+        $types   .= 's';
+        $values[] = $contact;
+    }
+    if ($role !== null)
+    {
+        $fields[] = 'role = ?';
+        $types   .= 's';
+        $values[] = $role;
+    }
 
     if (empty($fields)) return false;
 
-    $sql    = "UPDATE Users SET " . implode(', ', $fields) . " WHERE userID = ?";
-    $types .= 'i';
+    $sql      = "UPDATE Users SET " . implode(', ', $fields) . " WHERE userID = ?";
+    $types   .= 'i';
     $values[] = $userID;
 
     $stmt = $db->prepare($sql);
