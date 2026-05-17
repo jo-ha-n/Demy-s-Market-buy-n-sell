@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../src/includes/helpers.php';
 requireLogin();
 
 $db   = getDB();
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = "My Profile — Demy's";
-require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../src/includes/header.php';
 ?>
 
 <div class="container">
@@ -100,4 +100,4 @@ require_once __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>

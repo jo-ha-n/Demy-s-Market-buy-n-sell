@@ -1,6 +1,6 @@
 <?php
 // Demy's — Shared Helpers
-require_once __DIR__ . '/../config/database.php';
+require_once dirname(__DIR__, 2) . '/config/database.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -13,7 +13,7 @@ function isLoggedIn(): bool {
 
 function requireLogin(): void {
     if (!isLoggedIn()) {
-        header('Location: /demys/pages/login.php');
+        header('Location: ../pages/login.php');
         exit;
     }
 }

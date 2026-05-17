@@ -3,6 +3,7 @@ require_once __DIR__ . '/helpers.php';
 $user  = currentUser();
 $flash = getFlash();
 $csrf  = csrfToken();
+$hideHeader = $hideHeader ?? false;
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -15,8 +16,9 @@ $csrf  = csrfToken();
   <link rel="stylesheet" href="/demys/assets/css/main.css"/>
   <?= $extraHead ?? '' ?>
 </head>
-<body>
+<body<?= $hideHeader ? ' class="no-topbar"' : '' ?> >
 
+<?php if (!$hideHeader): ?>
 <!--TOPBAR-->
 <header class="topbar" id="topbar">
   <a href="/demys/index.php" class="topbar-logo">Logo</a>
@@ -74,6 +76,7 @@ $csrf  = csrfToken();
     </button>
   </nav>
 </header>
+<?php endif; ?>
 
 <!--FLASH-->
 <?php if ($flash): ?>
