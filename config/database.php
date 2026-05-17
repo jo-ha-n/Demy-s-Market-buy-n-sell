@@ -453,7 +453,8 @@ function updateItem(
  * Search items by keyword and/or tags.
  *
  * @param string|null $search      Searches title & description
- * @param array       $tagIDs      Filter by tag IDs (AND logic — item must have ALL tags)
+ * @param array       $tagIDs      Filter by tag IDs
+ * @param string      $tagLogic    'AND' — item must have ALL tags | 'OR' — item must have ANY tag
  * @param int|null    $categoryID  Optional category filter
  * @param string      $sort        'newest' | 'price_asc' | 'price_desc'
  * @param int         $limit
@@ -462,6 +463,7 @@ function updateItem(
 function searchItems(
     ?string $search = null,
     array $tagIDs = [],
+    string $tagLogic = 'AND',
     ?int $categoryID = null,
     string $sort = 'newest',
     int $limit = 20,
@@ -486,16 +488,22 @@ function searchItems(
         $values[] = $categoryID;
     }
 
-    // If tags are provided, only return items that have ALL of them
-    $tagJoin = '';
-    if (!empty($tagIDs)) {
-        $placeholders = implode(',', array_fill(0, count($tagIDs), '?'));
-        $tagJoin = "JOIN Item_Tag it ON it.itemID = i.itemID AND it.tagID IN ($placeholders)";
-        $types  .= str_repeat('i', count($tagIDs));
-        $values  = array_merge($values, $tagIDs);
+    $tagJoin   = '';
+    $having    = '';
+    $tagSelect = '';
 
-        // HAVING ensures the item matched every tag, not just any one
-        $where[] = '1=1';
+    if (!empty($tagIDs)) {
+        $tagLogic  = strtoupper($tagLogic) === 'OR' ? 'OR' : 'AND';
+        $placeholders = implode(',', array_fill(0, count($tagIDs), '?'));
+
+        $tagJoin   = "JOIN Item_Tag it ON it.itemID = i.itemID AND it.tagID IN ($placeholders)";
+        $tagSelect = 'COUNT(DISTINCT it.tagID) AS matched_tags,';
+        $types    .= str_repeat('i', count($tagIDs));
+        $values    = array_merge($values, $tagIDs);
+
+        $having = $tagLogic === 'AND'
+            ? 'HAVING matched_tags = ' . count($tagIDs)  // must have ALL tags
+            : 'HAVING matched_tags >= 1';                // must have ANY tag
     }
 
     $orderMap = [
@@ -505,26 +513,18 @@ function searchItems(
     ];
     $order = $orderMap[$sort] ?? 'i.created_at DESC';
 
-    $having = !empty($tagIDs)
-        ? 'HAVING matched_tags = ' . count($tagIDs)
-        : '';
-
-    $tagCountSelect = !empty($tagIDs)
-        ? 'COUNT(DISTINCT it.tagID) AS matched_tags,'
-        : '';
-
     $sql = "
         SELECT i.*,
-               u.username    AS seller_name,
+               u.username AS seller_name,
                c.category_name,
-               ROUND(AVG(r.rating), 1) AS avg_rating,
-               COUNT(DISTINCT r.reviewID) AS review_count,
-               $tagCountSelect
+               ROUND(AVG(r.rating), 1)     AS avg_rating,
+               COUNT(DISTINCT r.reviewID)  AS review_count,
+               $tagSelect
                GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ', ') AS tags
         FROM Item i
-        JOIN Users    u  ON u.userID     = i.sellerID
-        JOIN Category c  ON c.categoryID = i.categoryID
-        LEFT JOIN Reviews  r  ON r.itemID = i.itemID
+        JOIN Users    u   ON u.userID     = i.sellerID
+        JOIN Category c   ON c.categoryID = i.categoryID
+        LEFT JOIN Reviews  r   ON r.itemID  = i.itemID
         LEFT JOIN Item_Tag ita ON ita.itemID = i.itemID
         LEFT JOIN Tag      t   ON t.tagID   = ita.tagID
         $tagJoin
