@@ -449,6 +449,102 @@ function updateItem(
     return $stmt->execute();
 }
 
+/**
+ * Search items by keyword and/or tags.
+ *
+ * @param string|null $search      Searches title & description
+ * @param array       $tagIDs      Filter by tag IDs (AND logic — item must have ALL tags)
+ * @param int|null    $categoryID  Optional category filter
+ * @param string      $sort        'newest' | 'price_asc' | 'price_desc'
+ * @param int         $limit
+ * @param int         $offset
+ */
+function searchItems(
+    ?string $search = null,
+    array $tagIDs = [],
+    ?int $categoryID = null,
+    string $sort = 'newest',
+    int $limit = 20,
+    int $offset = 0
+): array {
+    $db     = getDB();
+    $where  = ["i.status = 'active'"];
+    $types  = '';
+    $values = [];
+
+    if ($search !== null) {
+        $like     = "%$search%";
+        $where[]  = '(i.title LIKE ? OR i.description LIKE ?)';
+        $types   .= 'ss';
+        $values[] = $like;
+        $values[] = $like;
+    }
+
+    if ($categoryID !== null) {
+        $where[]  = 'i.categoryID = ?';
+        $types   .= 'i';
+        $values[] = $categoryID;
+    }
+
+    // If tags are provided, only return items that have ALL of them
+    $tagJoin = '';
+    if (!empty($tagIDs)) {
+        $placeholders = implode(',', array_fill(0, count($tagIDs), '?'));
+        $tagJoin = "JOIN Item_Tag it ON it.itemID = i.itemID AND it.tagID IN ($placeholders)";
+        $types  .= str_repeat('i', count($tagIDs));
+        $values  = array_merge($values, $tagIDs);
+
+        // HAVING ensures the item matched every tag, not just any one
+        $where[] = '1=1';
+    }
+
+    $orderMap = [
+        'newest'     => 'i.created_at DESC',
+        'price_asc'  => 'i.price ASC',
+        'price_desc' => 'i.price DESC',
+    ];
+    $order = $orderMap[$sort] ?? 'i.created_at DESC';
+
+    $having = !empty($tagIDs)
+        ? 'HAVING matched_tags = ' . count($tagIDs)
+        : '';
+
+    $tagCountSelect = !empty($tagIDs)
+        ? 'COUNT(DISTINCT it.tagID) AS matched_tags,'
+        : '';
+
+    $sql = "
+        SELECT i.*,
+               u.username    AS seller_name,
+               c.category_name,
+               ROUND(AVG(r.rating), 1) AS avg_rating,
+               COUNT(DISTINCT r.reviewID) AS review_count,
+               $tagCountSelect
+               GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ', ') AS tags
+        FROM Item i
+        JOIN Users    u  ON u.userID     = i.sellerID
+        JOIN Category c  ON c.categoryID = i.categoryID
+        LEFT JOIN Reviews  r  ON r.itemID = i.itemID
+        LEFT JOIN Item_Tag ita ON ita.itemID = i.itemID
+        LEFT JOIN Tag      t   ON t.tagID   = ita.tagID
+        $tagJoin
+        WHERE " . implode(' AND ', $where) . "
+        GROUP BY i.itemID
+        $having
+        ORDER BY $order
+        LIMIT ? OFFSET ?
+    ";
+
+    $types   .= 'ii';
+    $values[] = $limit;
+    $values[] = $offset;
+
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param($types, ...$values);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
 /** Soft-delete: mark item as archived. */
 function archiveItem(int $itemID): bool {
     return updateItem($itemID, status: 'archived');
