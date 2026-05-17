@@ -39,6 +39,14 @@ CREATE TABLE IF NOT EXISTS Users (
   role           ENUM('buyer', 'seller', 'admin') NOT NULL DEFAULT 'buyer'
 ) ENGINE=InnoDB;
 
+-- ── Users_image ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Users_image (
+  u_imageID  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  userID   INT UNSIGNED NOT NULL,
+  user_image  VARCHAR(500) NOT NULL COMMENT 'file path or URL',
+  FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ── Item ──────────────────────────────────────────────────────────
 -- Note: ratingID removed — compute avg rating via query on Reviews
 CREATE TABLE IF NOT EXISTS Item (

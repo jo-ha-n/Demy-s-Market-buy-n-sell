@@ -1,6 +1,16 @@
 <?php
 require_once __DIR__ . '/../src/includes/helpers.php';
-if (isLoggedIn()) { header('Location: ../src/index.html'); exit; }
+
+$ajax = $_GET['ajax'] ?? $_POST['ajax'] ?? null;
+if ($ajax === '1' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    $user = currentUser();
+    respond([
+        'csrfToken' => csrfToken(),
+        'user'      => $user ? ['userID' => $user['userID'], 'username' => $user['username'], 'role' => $user['role']] : null,
+    ]);
+}
+
+if (isLoggedIn() && $ajax !== '1') { header('Location: ../src/index.html'); exit; }
 
 $errors = [];
 
@@ -26,6 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $_SESSION['userID'] = $db->insert_id;
             setFlash('success', "Welcome to Demy's Buy and Sell, {$username}!");
+            $user = ['userID' => $db->insert_id, 'username' => $username, 'role' => $role];
+            if ($ajax === '1') {
+                respond(['success' => true, 'message' => "Welcome to Demy's Buy and Sell, {$username}!", 'user' => $user]);
+            }
             header('Location: ../src/index.html?registered=1&user=' . rawurlencode($username)); exit;
         } else {
             $errors[] = $db->errno === 1062 ? 'Email or username already taken.' : 'Registration failed. Try again.';

@@ -1,6 +1,16 @@
 <?php
 require_once __DIR__ . '/../src/includes/helpers.php';
-if (isLoggedIn()) { header('Location: ../src/index.html'); exit; }
+
+$ajax = $_GET['ajax'] ?? $_POST['ajax'] ?? null;
+if ($ajax === '1' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    $user = currentUser();
+    respond([
+        'csrfToken' => csrfToken(),
+        'user'      => $user ? ['userID' => $user['userID'], 'username' => $user['username'], 'role' => $user['role']] : null,
+    ]);
+}
+
+if (isLoggedIn() && $ajax !== '1') { header('Location: ../src/index.html'); exit; }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -15,8 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($row && password_verify($password, $row['password'])) {
         $_SESSION['userID'] = $row['userID'];
         setFlash('success', "Welcome back, {$row['username']}!");
+        $user = ['userID' => $row['userID'], 'username' => $row['username'], 'role' => $row['role'] ?? 'buyer'];
+        if ($ajax === '1') {
+            respond(['success' => true, 'message' => "Welcome back, {$row['username']}!", 'user' => $user]);
+        }
         header('Location: ' . ($_GET['next'] ?? '../src/index.html')); exit;
     } else {
+        if ($ajax === '1') {
+            respond(['success' => false, 'error' => 'Invalid email or password.']);
+        }
         $error = 'Invalid email or password.';
     }
 }

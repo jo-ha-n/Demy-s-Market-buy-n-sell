@@ -42,7 +42,7 @@ $hideHeader = $hideHeader ?? false;
     <input type="text" name="q" placeholder="Search deals…" value="<?= h($_GET['q'] ?? '') ?>"/>
   </form>
 
-  <nav class="topbar-nav">
+  <nav class="topbar-nav" data-server-rendered="true">
     <?php if ($user): ?>
       <a href="../pages/sell.php" class="btn-accent">+ Sell</a>
       <a href="../pages/messages.php" class="topbar-icon" title="Messages">
@@ -56,19 +56,13 @@ $hideHeader = $hideHeader ?? false;
         </svg>
       </a>
       <div class="topbar-profile-wrap">
-        <button class="topbar-avatar" id="profileBtn">
+        <button class="topbar-avatar" id="profileBtn" aria-label="Open profile menu">
           <?= strtoupper(substr($user['username'], 0, 1)) ?>
         </button>
         <div class="profile-dropdown" id="profileDropdown">
-          <div class="profile-dropdown-header">
-            <span class="pd-name"><?= h($user['username']) ?></span>
-            <span class="pd-role"><?= h($user['role']) ?></span>
-          </div>
           <a href="../pages/profile.php">My Profile</a>
-          <a href="../pages/my-listings.php">My Listings</a>
-          <a href="../pages/transactions.php">Transactions</a>
           <div class="pd-divider"></div>
-          <a href="/demys/pages/logout.php" class="pd-danger">Sign Out</a>
+          <a href="../pages/logout.php" class="pd-danger">Sign Out</a>
         </div>
       </div>
     <?php else: ?>

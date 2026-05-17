@@ -25,9 +25,24 @@ async function fetchAuthCsrf() {
     const res = await fetch('../pages/login.php?ajax=1');
     const data = await res.json();
     window.authCsrfToken = data.csrfToken;
+    window.authUser = data.user || null;
     return data.csrfToken;
   } catch (err) {
     return null;
+  }
+}
+
+async function initAuthState() {
+  if (getSession()) return;
+  try {
+    const res = await fetch('../pages/login.php?ajax=1');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.user) {
+      setSession(data.user);
+    }
+  } catch (err) {
+    // ignore
   }
 }
 
@@ -220,7 +235,7 @@ function itemCard(item, base = '') {
 // ── Topbar nav injection (HTML pages only) ────────────────────────────────────
 function renderTopbarNav() {
   const nav = document.getElementById('topbarNav');
-  if (!nav) return;
+  if (!nav || nav.dataset.serverRendered === 'true') return;
 
   const session = getSession();
   const path    = window.location.pathname;
@@ -310,4 +325,4 @@ document.getElementById('profileBtn')?.addEventListener('click', e => {
 });
 
 // ── Init nav on HTML pages ────────────────────────────────────────────────────
-renderTopbarNav();
+initAuthState().then(renderTopbarNav);
