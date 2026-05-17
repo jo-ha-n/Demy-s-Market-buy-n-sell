@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/includes/helpers.php';
-if (isLoggedIn()) { header('Location: /demys/index.php'); exit; }
+if (isLoggedIn()) { header('Location: ../src/index.html'); exit; }
 
 $errors = [];
 
@@ -25,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param('ssss', $email, $username, $hash, $role);
         if ($stmt->execute()) {
             $_SESSION['userID'] = $db->insert_id;
-            setFlash('success', "Welcome to Demy's, {$username}!");
-            header('Location: /demys/index.php'); exit;
+            setFlash('success', "Welcome to Demy's Buy and Sell, {$username}!");
+            header('Location: ../src/index.html?registered=1&user=' . rawurlencode($username)); exit;
         } else {
             $errors[] = $db->errno === 1062 ? 'Email or username already taken.' : 'Registration failed. Try again.';
         }
@@ -250,6 +250,25 @@ select.rinput { appearance:none; cursor:pointer; }
           </div>
         </div>
 
+        <div class="rfield">
+          <label class="rlabel">Account type</label>
+          <div class="role-toggle">
+            <div class="role-opt">
+              <input type="radio" id="role-buyer" name="role" value="buyer" <?= (($_POST['role'] ?? 'buyer') === 'buyer') ? 'checked' : '' ?> />
+              <label for="role-buyer">
+                <span class="role-icon">🛒</span>
+                Buyer
+              </label>
+            </div>
+            <div class="role-opt">
+              <input type="radio" id="role-seller" name="role" value="seller" <?= (($_POST['role'] ?? '') === 'seller') ? 'checked' : '' ?> />
+              <label for="role-seller">
+                <span class="role-icon">🏷️</span>
+                Seller
+              </label>
+            </div>
+          </div>
+        </div>
 
         <button type="submit" class="reg-submit">Create Account</button>
       </form>

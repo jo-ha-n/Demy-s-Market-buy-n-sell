@@ -502,13 +502,39 @@
       .footer-v2-grid { grid-template-columns: 1fr; gap: 32px; }
       .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
     }
+
+    .flash-banner {
+      max-width: 960px;
+      margin: 0 auto 18px;
+      padding: 14px 18px;
+      border-radius: 16px;
+      background: #effaf3;
+      border: 1px solid #b7ebc6;
+      color: #1f5a2c;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      box-shadow: 0 20px 40px rgba(12, 55, 22, 0.08);
+      font-weight: 600;
+    }
+
+    .flash-banner button {
+      border: none;
+      background: transparent;
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <header class="topbar" id="topbar">
-  <a href="src/index.html" class="topbar-logo">Logo</a>
+  <a href="index.html" class="topbar-logo">Logo</a>
 
   <!-- Normal state: search bar -->
   <form class="topbar-search" onsubmit="handleSearch(event)">
@@ -734,6 +760,39 @@ function handleSearch(e) {
   window.location.href = `../pages/search.html?q=${encodeURIComponent(q)}`;
 }
 
+function showFlashMessage(message) {
+  const container = document.getElementById('flashContainer');
+  if (!container || !message) return;
+
+  const banner = document.createElement('div');
+  banner.className = 'flash-banner';
+
+  const text = document.createElement('span');
+  text.textContent = message;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.setAttribute('aria-label', 'Dismiss notification');
+  button.textContent = '✕';
+  button.addEventListener('click', () => banner.remove());
+
+  banner.append(text, button);
+  container.appendChild(banner);
+}
+
+function initFlashFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('registered') === '1') {
+    const user = params.get('user') || '';
+    const message = user ? `Welcome ${user}! Your account has been created.` : 'Welcome! Your account has been created.';
+    showFlashMessage(message);
+    params.delete('registered');
+    params.delete('user');
+    const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '') + window.location.hash;
+    window.history.replaceState({}, '', newUrl);
+  }
+}
+
 // Carousel state
 let catData    = [];
 let catPage    = 0;
@@ -894,6 +953,7 @@ async function loadHome() {
   applyWishState();
 }
 
+initFlashFromQuery();
 loadHome();
 </script>
 </body>

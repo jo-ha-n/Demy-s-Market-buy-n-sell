@@ -13,6 +13,18 @@ $hideHeader = $hideHeader ?? false;
   <title><?= h($pageTitle ?? "Demy's — Buy and Sell") ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+  <script>
+    (function(){
+      try {
+        var storedTheme = localStorage.getItem('demys-theme');
+        if (storedTheme === 'dark' || storedTheme === 'light') {
+          document.documentElement.setAttribute('data-theme', storedTheme);
+        }
+      } catch (e) {
+        // Ignore storage errors.
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="/demys/assets/css/main.css"/>
   <?= $extraHead ?? '' ?>
 </head>

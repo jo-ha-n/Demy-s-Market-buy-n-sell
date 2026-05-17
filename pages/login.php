@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/includes/helpers.php';
-if (isLoggedIn()) { header('Location: /demys/index.php'); exit; }
+if (isLoggedIn()) { header('Location: ../src/index.html'); exit; }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($row && password_verify($password, $row['password'])) {
         $_SESSION['userID'] = $row['userID'];
         setFlash('success', "Welcome back, {$row['username']}!");
-        header('Location: ' . ($_GET['next'] ?? '/demys/index.php')); exit;
+        header('Location: ' . ($_GET['next'] ?? '../src/index.html')); exit;
     } else {
         $error = 'Invalid email or password.';
     }

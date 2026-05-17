@@ -224,10 +224,13 @@ function renderTopbarNav() {
 
   const session = getSession();
   const path    = window.location.pathname;
-  const isPages = path.includes('/pages/');
-  const isSrc   = path.includes('/src/');
-  const base    = isPages ? '' : isSrc ? '../pages/' : 'pages/';
-  const root    = isPages ? '../src/' : '';
+  const rootPath = path.includes('/pages/')
+    ? path.slice(0, path.indexOf('/pages/'))
+    : path.includes('/src/')
+      ? path.slice(0, path.indexOf('/src/'))
+      : '';
+  const base = `${rootPath}/pages/`;
+  const root = `${rootPath}/src/`;
 
   const themeBtn = `
     <button class="theme-toggle" id="themeToggle" title="Toggle theme">
