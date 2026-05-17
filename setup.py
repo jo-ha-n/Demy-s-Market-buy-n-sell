@@ -1,5 +1,5 @@
 # Set up necessary prerequisite dbs for the buy and sell website
-import os, sys, subprocess, json, sqlite3
+import os, sys, subprocess, json
 from typing import Callable, Any
 
 package = "mysql-connector-python"
@@ -16,6 +16,7 @@ finally:
 def generate_insert_sql(columns: list[str], table: str) -> str:
     placeholder = str.join(", ", (["%s"] * len(columns)))
     columns_str = str.join(", ", columns)
+
     return f"""INSERT INTO {table}({columns_str}) VALUES ({placeholder})"""
 
 
@@ -68,11 +69,7 @@ def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -
         return
 
     cursor.executemany(generate_insert_sql(columns, table), values)
-
-    if isinstance(cursor, sqlite3.Cursor):
-        cursor.connection.commit()
-    else:
-        cursor._connection.commit()
+    cursor._connection.commit()
 
 
 @error_handling_sql
@@ -87,10 +84,12 @@ def execute_sql_script_from_file(
 
 
 def get_files(path: os.PathLike[str], endswith: str) -> list[str]:
-    return [
+    return [ 
         os.path.join(path, file) for file in os.listdir(path)
-        if file.endswith(endswith) and os.path.exists(os.path.join(path, file))
-    ]
+        # os.path.exists seems overkill 
+        # if file.endswith(endswith) and os.path.exists(os.path.join(path, file))
+        if file.endswith(endswith)
+    ] 
 
 
 def init():
