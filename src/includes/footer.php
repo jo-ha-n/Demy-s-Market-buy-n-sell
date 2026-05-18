@@ -1,5 +1,8 @@
+<?php
+  $hideFooter = $hideFooter ?? false;
+?>
 </main>
-
+<?php if (!$hideFooter): ?>
 <footer class="site-footer">
   <div class="footer-inner">
     <span class="footer-logo">Logo</span>
@@ -12,6 +15,7 @@
     </div>
   </div>
 </footer>
+<?php endif; ?>
 
 <script src="/demys/assets/js/main.js"></script>
 <?= $extraScript ?? '' ?>

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../src/includes/helpers.php';
 requireLogin();
 
 $db   = getDB();
@@ -55,9 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = "Sell an Item — Demy's";
-require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../src/includes/header.php';
 ?>
-
+<link rel="stylesheet" href="../assets/css/main.css"/>
 <div class="container">
   <div class="section" style="max-width:700px;margin:0 auto">
     <div class="page-card">
@@ -125,4 +125,4 @@ require_once __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>

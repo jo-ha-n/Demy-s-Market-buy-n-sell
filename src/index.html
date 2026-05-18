@@ -6,7 +6,7 @@
   <title>Demy's — Buy and Sell</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="assets/css/main.css"/>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
   <style>
     /* Scrolled topbar with category tabs */
     .topbar-cats {
@@ -220,6 +220,155 @@
     .rec-login-text p  { font-size: 14px; color: var(--muted); margin-bottom: 20px; max-width: 260px; }
     .rec-login-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+      z-index: 150;
+    }
+    .auth-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    .auth-modal {
+      width: 100%;
+      max-width: 820px;
+      background: var(--surface);
+      border-radius: 24px;
+      box-shadow: 0 28px 80px rgba(0,0,0,0.28);
+      overflow: hidden;
+      position: relative;
+    }
+    .auth-modal-inner {
+      display: grid;
+      grid-template-columns: 1fr 1.05fr;
+      min-height: 480px;
+    }
+    .auth-panel {
+      padding: 34px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .auth-panel h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      margin-bottom: 2px;
+    }
+    .auth-panel p {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .auth-tabs {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .auth-tab {
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+    .auth-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .auth-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 18px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .auth-alert {
+      display: none;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid rgba(192,25,43,0.15);
+    }
+    .auth-form {
+      display: grid;
+      gap: 16px;
+    }
+    .auth-field {
+      display: grid;
+      gap: 8px;
+    }
+    .auth-field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .auth-field input,
+    .auth-field select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .auth-field input:focus,
+    .auth-field select:focus {
+      border-color: var(--accent);
+    }
+    .auth-form button {
+      margin-top: 8px;
+    }
+    .auth-note {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .auth-panel-small {
+      background: var(--text);
+      color: #fff;
+      padding: 34px 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+    }
+    .auth-panel-small h3 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .auth-panel-small p {
+      margin: 0;
+      color: rgba(255,255,255,0.78);
+    }
+    @media (max-width: 860px) {
+      .auth-modal-inner { grid-template-columns: 1fr; }
+      .auth-panel-small { order: -1; }
+    }
+
     /* Recent Deals Near You */
     .recent-section { padding: 0 0 48px; }
     .location-header {
@@ -353,6 +502,32 @@
       .footer-v2-grid { grid-template-columns: 1fr; gap: 32px; }
       .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
     }
+
+    .flash-banner {
+      max-width: 960px;
+      margin: 0 auto 18px;
+      padding: 14px 18px;
+      border-radius: 16px;
+      background: #effaf3;
+      border: 1px solid #b7ebc6;
+      color: #1f5a2c;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      box-shadow: 0 20px 40px rgba(12, 55, 22, 0.08);
+      font-weight: 600;
+    }
+
+    .flash-banner button {
+      border: none;
+      background: transparent;
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
@@ -376,6 +551,72 @@
 
   <nav class="topbar-nav" id="topbarNav"><!-- injected by JS --></nav>
 </header>
+
+<div id="authOverlay" class="auth-overlay" aria-hidden="true">
+  <div class="auth-modal">
+    <button type="button" class="auth-close" onclick="closeAuthOverlay()">✕</button>
+    <div class="auth-modal-inner">
+      <section class="auth-panel auth-panel-small">
+        <h3>Welcome back</h3>
+        <p>Use your account to access your saved items, chats, and seller dashboard.</p>
+        <p class="auth-note">Need an account? Switch to Sign Up and join the community today.</p>
+      </section>
+      <section class="auth-panel">
+        <div class="auth-tabs">
+          <button id="loginTab" type="button" class="auth-tab active" onclick="switchAuthTab('login')">Log In</button>
+          <button id="registerTab" type="button" class="auth-tab" onclick="switchAuthTab('register')">Sign Up</button>
+        </div>
+        <div id="authError" class="auth-alert"></div>
+        <h2 id="authTitle">Log In</h2>
+
+        <div id="loginPanel">
+          <form id="loginForm" class="auth-form" onsubmit="submitAuthForm(event,'login')">
+            <div class="auth-field">
+              <label for="loginEmail">Email</label>
+              <input id="loginEmail" type="email" name="email" required placeholder="you@example.com" />
+            </div>
+            <div class="auth-field">
+              <label for="loginPassword">Password</label>
+              <input id="loginPassword" type="password" name="password" required placeholder="••••••••" />
+            </div>
+            <input type="hidden" id="loginCsrf" name="csrf_token" value="" />
+            <button type="submit" class="btn-accent btn-block">Log In</button>
+          </form>
+        </div>
+
+        <div id="registerPanel" style="display:none;">
+          <form id="registerForm" class="auth-form" onsubmit="submitAuthForm(event,'register')">
+            <div class="auth-field">
+              <label for="registerEmail">Email</label>
+              <input id="registerEmail" type="email" name="email" required placeholder="you@example.com" />
+            </div>
+            <div class="auth-field">
+              <label for="registerUsername">Username</label>
+              <input id="registerUsername" type="text" name="username" required placeholder="john_doe" />
+            </div>
+            <div class="auth-field">
+              <label for="registerPassword">Password</label>
+              <input id="registerPassword" type="password" name="password" required placeholder="••••••••" />
+            </div>
+            <div class="auth-field">
+              <label for="registerConfirm">Confirm Password</label>
+              <input id="registerConfirm" type="password" name="confirm" required placeholder="••••••••" />
+            </div>
+            <div class="auth-field">
+              <label>I want to...</label>
+              <select name="role">
+                <option value="buyer">Buy items</option>
+                <option value="seller">Sell items</option>
+              </select>
+            </div>
+            <input type="hidden" id="registerCsrf" name="csrf_token" value="" />
+            <button type="submit" class="btn-accent btn-block">Create Account</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
 
 <div id="flashContainer"></div>
 <main class="page-main">
@@ -406,7 +647,7 @@
       </form>
       <div class="hero-divider-or"><span>or</span></div>
       <p class="hero-cta-label">Make One</p>
-      <a href="pages/sell.php" class="btn-accent btn-block" style="text-align:center;justify-content:center">Start Selling</a>
+      <a href="../pages/sell.php" class="btn-accent btn-block" style="text-align:center;justify-content:center">Start Selling</a>
     </div>
   </div>
 </section>
@@ -419,7 +660,7 @@
     <div class="carousel-header">
       <h2 class="carousel-title">Popular Categories</h2>
       <div style="display:flex;align-items:center;gap:12px">
-        <a href="pages/search.html" class="section-link" style="margin:0">Browse all →</a>
+        <a href="../pages/search.html" class="section-link" style="margin:0">Browse all →</a>
         <div class="carousel-arrows">
           <button class="carousel-btn" id="catPrev">‹</button>
           <button class="carousel-btn" id="catNext">›</button>
@@ -436,7 +677,7 @@
   <section class="rec-section">
     <div class="section-header">
       <h2 class="section-title">Recommended For You</h2>
-      <a href="pages/search.html" class="section-link">See all →</a>
+      <a href="../pages/search.html" class="section-link">See all →</a>
     </div>
     <div id="recContent">
       <!-- injected by JS: grid or login gate -->
@@ -461,7 +702,7 @@
     </div>
 
     <div style="text-align:center;margin-top:28px">
-      <a href="pages/search.html" class="btn-ghost">View all listings</a>
+      <a href="../pages/search.html" class="btn-ghost">View all listings</a>
     </div>
   </section>
 
@@ -479,9 +720,9 @@
         A community-driven buy and sell marketplace — connecting buyers and sellers with fair prices and honest deals.
       </p>
       <div class="footer-links-list">
-        <a href="pages/search.html">Browse Listings</a>
-        <a href="pages/sell.php">Start Selling</a>
-        <a href="pages/register.php">Join the Community</a>
+        <a href="../pages/search.html">Browse Listings</a>
+        <a href="../pages/sell.php">Start Selling</a>
+        <a href="../pages/register.php">Join the Community</a>
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Service</a>
       </div>
@@ -510,13 +751,46 @@
 </footer>
 
 <!--SCRIPTS-->
-<script src="assets/js/main.js"></script>
+<script src="../assets/js/main.js"></script>
 <script>
 //Search handler
 function handleSearch(e) {
   e.preventDefault();
   const q = (document.getElementById('heroQ')?.value || document.getElementById('topbarQ')?.value || '').trim();
-  window.location.href = `pages/search.html?q=${encodeURIComponent(q)}`;
+  window.location.href = `../pages/search.html?q=${encodeURIComponent(q)}`;
+}
+
+function showFlashMessage(message) {
+  const container = document.getElementById('flashContainer');
+  if (!container || !message) return;
+
+  const banner = document.createElement('div');
+  banner.className = 'flash-banner';
+
+  const text = document.createElement('span');
+  text.textContent = message;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.setAttribute('aria-label', 'Dismiss notification');
+  button.textContent = '✕';
+  button.addEventListener('click', () => banner.remove());
+
+  banner.append(text, button);
+  container.appendChild(banner);
+}
+
+function initFlashFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('registered') === '1') {
+    const user = params.get('user') || '';
+    const message = user ? `Welcome ${user}! Your account has been created.` : 'Welcome! Your account has been created.';
+    showFlashMessage(message);
+    params.delete('registered');
+    params.delete('user');
+    const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '') + window.location.hash;
+    window.history.replaceState({}, '', newUrl);
+  }
 }
 
 // Carousel state
@@ -612,8 +886,8 @@ function submitFeedback() {
 // Main loader
 async function loadHome() {
   const [cats, items] = await Promise.all([
-    fetch('data/categories.json').then(r => r.json()),
-    fetch('data/items.json').then(r => r.json())
+    fetch('../dummy_data/categories.json').then(r => r.json()),
+    fetch('../dummy_data/items.json').then(r => r.json())
   ]);
 
   catData = cats;
@@ -626,7 +900,7 @@ async function loadHome() {
   // Carousel slides
   const track = document.getElementById('catTrack');
   track.innerHTML = cats.map(c => `
-    <a href="pages/search.html?category=${c.categoryID}" class="carousel-slide cat-card">
+    <a href="../pages/search.html?category=${c.categoryID}" class="carousel-slide cat-card">
       <img src="${c.image}" alt="${c.category_name}" loading="lazy"/>
       <div class="cat-card-overlay">
         <div class="cat-card-name">${c.category_name}</div>
@@ -638,7 +912,7 @@ async function loadHome() {
   // Topbar category tabs
   const tabsEl = document.getElementById('topbarCats');
   tabsEl.innerHTML = ['All', ...cats.map(c => c.category_name)].map((name, i) => {
-    const href = i === 0 ? 'pages/search.html' : `pages/search.html?category=${i}`;
+    const href = i === 0 ? '../pages/search.html' : `../pages/search.html?category=${i}`;
     return `<a href="${href}" class="topbar-cat-tab ${i===0?'active':''}"
                onclick="document.querySelectorAll('.topbar-cat-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
               ${name}
@@ -661,8 +935,8 @@ async function loadHome() {
           <h3>Personalized just for you</h3>
           <p>Log in to see items recommended based on your browsing and wishlist.</p>
           <div class="rec-login-actions">
-            <a href="pages/login.php" class="btn-accent">Log In to View</a>
-            <a href="pages/register.php" class="btn-ghost">Sign Up Free</a>
+            <a href="../pages/login.php" class="btn-accent">Log In to View</a>
+            <a href="../pages/register.php" class="btn-ghost">Sign Up Free</a>
           </div>
         </div>
       </div>`;
@@ -679,6 +953,7 @@ async function loadHome() {
   applyWishState();
 }
 
+initFlashFromQuery();
 loadHome();
 </script>
 </body>

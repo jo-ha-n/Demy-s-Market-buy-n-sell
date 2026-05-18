@@ -1,6 +1,6 @@
 <?php
 // Demy's — Shared Helpers
-require_once __DIR__ . '/../config/database.php';
+require_once dirname(__DIR__, 2) . '/config/database.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -8,12 +8,36 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Auth
 function isLoggedIn(): bool {
-    return isset($_SESSION['userID']);
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    if (empty($_SESSION['userID']) || !is_numeric($_SESSION['userID']) || (int) $_SESSION['userID'] <= 0) {
+        return false;
+    }
+
+    $db = getDB();
+    $id = (int) $_SESSION['userID'];
+    $stmt = $db->prepare('SELECT userID FROM Users WHERE userID = ? LIMIT 1');
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result && $result->fetch_assoc()) {
+        return true;
+    }
+
+    session_unset();
+    session_destroy();
+    return false;
 }
 
 function requireLogin(): void {
     if (!isLoggedIn()) {
-        header('Location: /demys/pages/login.php');
+        header('Location: ../pages/login.php');
         exit;
     }
 }
