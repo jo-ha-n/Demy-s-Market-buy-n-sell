@@ -25,7 +25,7 @@ $hideHeader = $hideHeader ?? false;
       }
     })();
   </script>
-  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <link rel="stylesheet" href="../../assets/css/main.css"/>
   <?= $extraHead ?? '' ?>
 </head>
 <body<?= $hideHeader ? ' class="no-topbar"' : '' ?> >

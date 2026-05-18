@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transactions — Demy's</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="../index.html" class="topbar-logo">Demy's</a>
+  <form class="topbar-search" onsubmit="handleSearch(event)">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <input type="text" id="topbarQ" placeholder="Search deals…"/>
+  </form>
+  <nav class="topbar-nav" id="topbarNav"></nav>
+</header>
+
+<div id="flashContainer"></div>
+
+<main class="page-main">
+<div class="container">
+  <section class="section">
+
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:28px">
+      <h1 class="section-title">Transactions</h1>
+      <div id="txnSummary" style="font-size:13px;color:var(--muted)"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:24px" id="txnTabs">
+      <button class="btn-accent btn-sm" onclick="filterTxn('all', this)">All</button>
+      <button class="btn-ghost btn-sm" onclick="filterTxn('bought', this)">Bought</button>
+      <button class="btn-ghost btn-sm" onclick="filterTxn('sold', this)">Sold</button>
+    </div>
+
+    <div id="txnContent">
+      <div class="empty"><div class="empty-icon">⏳</div><h3>Loading…</h3></div>
+    </div>
+
+  </section>
+</div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-logo">Demy's</span>
+    <span class="footer-copy">© 2026 — Buy &amp; Sell community marketplace</span>
+    <div class="footer-links">
+      <a href="search.html">Browse</a><a href="sell.php">Sell</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/js/main.js"></script>
+<script>
+  let allTxns = [];
+  let currentFilter = 'all';
+
+  function handleSearch(e) {
+    e.preventDefault();
+    window.location.href = `search.html?q=${encodeURIComponent(document.getElementById('topbarQ').value.trim())}`;
+  }
+
+  async function init() {
+    const session = getSession();
+    if (!session) { window.location.href = 'login.php'; return; }
+
+    const txns = await fetch('../data/transactions.json').then(r => r.json());
+    // Filter by current user
+    allTxns = txns.filter(t => t.sellerID === session.userID || t.buyerID === session.userID);
+
+    // Summary totals
+    const spent = allTxns.filter(t => t.buyerID === session.userID).reduce((s,t) => s + t.price, 0);
+    const earned= allTxns.filter(t => t.sellerID === session.userID).reduce((s,t) => s + t.price, 0);
+    document.getElementById('txnSummary').innerHTML =
+      `Earned: <strong style="color:var(--success)">${formatPrice(earned)}</strong> &nbsp;·&nbsp; Spent: <strong style="color:var(--accent)">${formatPrice(spent)}</strong>`;
+
+    render(session.userID);
+  }
+
+  function filterTxn(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('#txnTabs button').forEach(b => b.className = 'btn-ghost btn-sm');
+    btn.className = 'btn-accent btn-sm';
+    render(getSession().userID);
+  }
+
+  function render(uid) {
+    let filtered = allTxns;
+    if (currentFilter === 'bought') filtered = allTxns.filter(t => t.buyerID === uid);
+    if (currentFilter === 'sold')   filtered = allTxns.filter(t => t.sellerID === uid);
+
+    const container = document.getElementById('txnContent');
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">💳</div>
+          <h3>No transactions yet</h3>
+          <p>Your buy and sell history will appear here.</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Item</th><th>Role</th><th>Other Party</th><th>Price</th><th>Payment</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            ${filtered.map(t => {
+              const isSeller = t.sellerID === uid;
+              const roleBadge = isSeller
+                ? `<span class="badge badge-success">Sold</span>`
+                : `<span class="badge badge-accent">Bought</span>`;
+              const other = isSeller ? t.buyer_name : t.seller_name;
+              return `
+                <tr>
+                  <td style="font-weight:500">${t.item_title}</td>
+                  <td>${roleBadge}</td>
+                  <td>${other}</td>
+                  <td>${formatPrice(t.price)}</td>
+                  <td>${t.payment_method || '—'}</td>
+                  <td>${new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  init();
+</script>
+</body>
+</html>
