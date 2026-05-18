@@ -53,7 +53,9 @@ def drop_db(cursor: MySQLCursorAbstract, db_name: str) -> None:
 
 @error_handling_sql
 def is_db_exists(cursor: MySQLCursorAbstract, db_name: str) -> bool:
-    cursor.execute(f"SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{db_name}'")
+    cursor.execute(
+        f"SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{db_name}'"
+    )
 
     return cursor.fetchone()[0] == 1
 
@@ -63,19 +65,25 @@ def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -
     with open(path, 'r', encoding="utf-8") as file:
         data = json.load(file)
 
-    if not isinstance(data, dict):
-        print(f"ERROR: Expected a JSON object in {path}, got {type(data).__name__}")
+    if not isinstance(data, list):
+        print(f"ERROR: Expected a list of objects in {path}, got {type(data).__name__}")
         return
 
-    try:
-        columns = data["columns"]
-        values = data["values"]
-        table = data["table"]
-    except KeyError as e:
-        print(f"ERROR: Missing key {e} in {path}")
-        return
+    print(f"{len(data)} tables found! Inserting Values")
 
-    cursor.executemany(generate_insert_sql(columns, table), values)
+    for tables in data:
+        try:
+            columns = tables["columns"]
+            values = tables["values"]
+            table_name = tables["table"]
+
+            print(f" - Adding values in table {table_name}")
+        except KeyError as e:
+            print(f"ERROR: Missing key {e} in {path}")
+            return
+
+        cursor.executemany(generate_insert_sql(columns, table_name), values)
+
     cursor._connection.commit()
 
 
@@ -85,9 +93,12 @@ def execute_sql_script_from_file(
     with open(path, encoding="utf-8") as f:
         content = f.read()
 
-    # split the sql statements then exec them one by one instead of exec as a whole
-    for cmd in [cmd.strip() for cmd in content.split(';') if cmd.strip()]:
-        cursor.execute(cmd)
+    # split the sql statements then exec them one by one instead of exec the script as a whole
+    [
+        cursor.execute(cmd) for cmd in [
+            cmd.strip() for cmd in content.split(';') if cmd.strip()
+        ]
+    ]
 
 
 def get_files(path: os.PathLike[str], endswith: str) -> list[str]:
@@ -114,14 +125,13 @@ def init():
         sys.exit()
 
     print("Credentials:")
-    print(f"\t- host: '{creds['host']}'")
-    print(f"\t- user: '{creds['user']}'")
-    print(f"\t- pass: '{creds['pass']}'")
+    print(f" - host: '{creds['host']}'")
+    print(f" - user: '{creds['user']}'")
+    print(f" - pass: '{creds['pass']}'")
 
     root_path = os.path.dirname(__file__)
     schema_path = os.path.join(root_path, "sql", "setup", "tables.sql")
-    data_path = os.path.join(root_path, "data")
-    dummy_data_path = os.path.join(data_path, "dummy_data")
+    data_path = os.path.join(root_path, "data", "dummy_data.json")
 
     mysql_connection = mysql.connector.connect(
         host=creds['host'],
@@ -139,25 +149,15 @@ def init():
 
     create_db(mysql_cursor, db_name)
     use_db(mysql_cursor, db_name)
-
-    execute_sql_script_from_file(mysql_cursor, schema_path)
-
-    create_db(mysql_cursor, db_name)
-    use_db(mysql_cursor, db_name)
     execute_sql_script_from_file(mysql_cursor, schema_path)
 
     print(f"Adding dummy data to '{db_name}'....")
 
-    if not os.path.exists(dummy_data_path):
-        print(f"{dummy_data_path} PATH DOES NOT EXIST!")
+    if not os.path.exists(data_path):
+        print(f"{data_path} PATH DOES NOT EXIST!")
         return
 
-    dummy_data_files = get_files(dummy_data_path, ".json")
-    print(f"Found {len(dummy_data_files)} files of dummy data, inserting....")
-
-    for file in dummy_data_files:
-        insert_data_from_json(mysql_cursor, file)
-
+    insert_data_from_json(mysql_cursor, data_path)
     mysql_connection.close()
 
 
