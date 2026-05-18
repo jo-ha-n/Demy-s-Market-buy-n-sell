@@ -3,6 +3,7 @@ require_once __DIR__ . '/helpers.php';
 $user  = currentUser();
 $flash = getFlash();
 $csrf  = csrfToken();
+$hideHeader = $hideHeader ?? false;
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -12,54 +13,61 @@ $csrf  = csrfToken();
   <title><?= h($pageTitle ?? "Demy's — Buy and Sell") ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/demys/assets/css/main.css"/>
+  <script>
+    (function(){
+      try {
+        var storedTheme = localStorage.getItem('demys-theme');
+        if (storedTheme === 'dark' || storedTheme === 'light') {
+          document.documentElement.setAttribute('data-theme', storedTheme);
+        }
+      } catch (e) {
+        // Ignore storage errors.
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
   <?= $extraHead ?? '' ?>
 </head>
-<body>
+<body<?= $hideHeader ? ' class="no-topbar"' : '' ?> >
 
+<?php if (!$hideHeader): ?>
 <!--TOPBAR-->
 <header class="topbar" id="topbar">
-  <a href="/demys/index.php" class="topbar-logo">Logo</a>
+  <a href="../src/index.html" class="topbar-logo">Logo</a>
 
-  <form class="topbar-search" action="/demys/pages/search.php" method="GET">
+  <form class="topbar-search" action="../pages/search.php" method="GET">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
     </svg>
     <input type="text" name="q" placeholder="Search deals…" value="<?= h($_GET['q'] ?? '') ?>"/>
   </form>
 
-  <nav class="topbar-nav">
+  <nav class="topbar-nav" data-server-rendered="true">
     <?php if ($user): ?>
-      <a href="/demys/pages/sell.php" class="btn-accent">+ Sell</a>
-      <a href="/demys/pages/messages.php" class="topbar-icon" title="Messages">
+      <a href="../pages/sell.php" class="btn-accent">+ Sell</a>
+      <a href="../pages/messages.php" class="topbar-icon" title="Messages">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </a>
-      <a href="/demys/pages/wishlist.php" class="topbar-icon" title="Wishlist">
+      <a href="../pages/wishlist.php" class="topbar-icon" title="Wishlist">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
         </svg>
       </a>
       <div class="topbar-profile-wrap">
-        <button class="topbar-avatar" id="profileBtn">
+        <button class="topbar-avatar" id="profileBtn" aria-label="Open profile menu">
           <?= strtoupper(substr($user['username'], 0, 1)) ?>
         </button>
         <div class="profile-dropdown" id="profileDropdown">
-          <div class="profile-dropdown-header">
-            <span class="pd-name"><?= h($user['username']) ?></span>
-            <span class="pd-role"><?= h($user['role']) ?></span>
-          </div>
-          <a href="/demys/pages/profile.php">My Profile</a>
-          <a href="/demys/pages/my-listings.php">My Listings</a>
-          <a href="/demys/pages/transactions.php">Transactions</a>
+          <a href="../pages/profile.php">My Profile</a>
           <div class="pd-divider"></div>
-          <a href="/demys/pages/logout.php" class="pd-danger">Sign Out</a>
+          <a href="../pages/logout.php" class="pd-danger">Sign Out</a>
         </div>
       </div>
     <?php else: ?>
-      <a href="/demys/pages/login.php" class="btn-ghost">Log In</a>
-      <a href="/demys/pages/register.php" class="btn-accent">Sign Up</a>
+      <a href="../pages/login.php" class="btn-ghost">Log In</a>
+      <a href="../pages/register.php" class="btn-accent">Sign Up</a>
     <?php endif; ?>
     <button class="theme-toggle" id="themeToggle" title="Toggle theme">
       <svg class="icon-sun" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -74,6 +82,7 @@ $csrf  = csrfToken();
     </button>
   </nav>
 </header>
+<?php endif; ?>
 
 <!--FLASH-->
 <?php if ($flash): ?>

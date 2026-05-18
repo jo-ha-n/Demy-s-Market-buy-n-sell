@@ -1,8 +1,8 @@
--- CREATE DATABASE IF NOT EXISTS demys_db
+-- CREATE DATABASE IF NOT EXISTS dummy_demys_db
 --   CHARACTER SET utf8mb4
 --   COLLATE utf8mb4_unicode_ci;
 
--- USE demys_db;
+-- USE dummy_demys_db;
 
 -- ── Category ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS Category (
@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS Users (
   address        TEXT,
   contact_number VARCHAR(20),
   role           ENUM('buyer', 'seller', 'admin') NOT NULL DEFAULT 'buyer'
+) ENGINE=InnoDB;
+
+-- ── Users_image ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS Users_image (
+  u_imageID  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  userID   INT UNSIGNED NOT NULL,
+  user_image  VARCHAR(500) NOT NULL COMMENT 'file path or URL',
+  FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ── Item ──────────────────────────────────────────────────────────

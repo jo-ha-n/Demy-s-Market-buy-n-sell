@@ -18,6 +18,123 @@ function clearSession() {
   localStorage.removeItem('demys-session');
 }
 
+// ── Auth overlay helpers ────────────────────────────────────────────────────
+async function fetchAuthCsrf() {
+  if (window.authCsrfToken) return window.authCsrfToken;
+  try {
+    const res = await fetch('../pages/login.php?ajax=1');
+    const data = await res.json();
+    window.authCsrfToken = data.csrfToken;
+    window.authUser = data.user || null;
+    return data.csrfToken;
+  } catch (err) {
+    return null;
+  }
+}
+
+async function initAuthState() {
+  if (getSession()) return;
+  try {
+    const res = await fetch('../pages/login.php?ajax=1');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.user) {
+      setSession(data.user);
+    }
+  } catch (err) {
+    // ignore
+  }
+}
+
+function openAuthOverlay(mode = 'login') {
+  const overlay = document.getElementById('authOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  switchAuthTab(mode);
+  fetchAuthCsrf().then(token => {
+    if (token) {
+      document.getElementById('loginCsrf')?.setAttribute('value', token);
+      document.getElementById('registerCsrf')?.setAttribute('value', token);
+    }
+  });
+}
+
+function closeAuthOverlay() {
+  const overlay = document.getElementById('authOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  clearAuthMessages();
+}
+
+function switchAuthTab(mode) {
+  const loginTab = document.getElementById('loginTab');
+  const registerTab = document.getElementById('registerTab');
+  const loginPanel = document.getElementById('loginPanel');
+  const registerPanel = document.getElementById('registerPanel');
+  const authTitle = document.getElementById('authTitle');
+  if (!loginTab || !registerTab || !loginPanel || !registerPanel) return;
+
+  loginTab.classList.toggle('active', mode === 'login');
+  registerTab.classList.toggle('active', mode === 'register');
+  loginPanel.style.display = mode === 'login' ? 'block' : 'none';
+  registerPanel.style.display = mode === 'register' ? 'block' : 'none';
+  if (authTitle) authTitle.textContent = mode === 'login' ? 'Log In' : 'Sign Up';
+  clearAuthMessages();
+}
+
+function clearAuthMessages() {
+  const err = document.getElementById('authError');
+  if (err) {
+    err.style.display = 'none';
+    err.textContent = '';
+  }
+}
+
+async function submitAuthForm(event, mode) {
+  event.preventDefault();
+  const form = document.getElementById(`${mode}Form`);
+  if (!form) return;
+
+  const url = mode === 'login'
+    ? '../pages/login.php?ajax=1'
+    : '../pages/register.php?ajax=1';
+
+  const data = new FormData(form);
+  data.append('ajax', '1');
+
+  const response = await fetch(url, {
+    method: 'POST',
+    body: data,
+  });
+
+  if (!response.ok) {
+    showAuthError('Server error. Please try again.');
+    return;
+  }
+
+  const result = await response.json();
+  if (!result.success) {
+    showAuthError(result.error || 'Authentication failed.');
+    return;
+  }
+
+  if (result.user) {
+    setSession(result.user);
+    renderTopbarNav();
+    if (typeof loadHome === 'function') loadHome();
+  }
+
+  closeAuthOverlay();
+  showFlash('success', result.message || 'Logged in successfully.');
+}
+
+function showAuthError(message) {
+  const err = document.getElementById('authError');
+  if (!err) return;
+  err.textContent = message;
+  err.style.display = 'block';
+}
+
 // ── Wishlist helpers (localStorage) ──────────────────────────────────────────
 function getWishlist() {
   try { return JSON.parse(localStorage.getItem('demys-wish') || '[]'); }
@@ -29,8 +146,10 @@ function isWished(itemID) {
 function toggleWish(itemID, btn) {
   const session = getSession();
   if (!session) {
-    const isPages = window.location.pathname.includes('/pages/');
-    window.location.href = (isPages ? '' : 'pages/') + 'login.php';
+    const path    = window.location.pathname;
+    const isPages = path.includes('/pages/');
+    const isSrc   = path.includes('/src/');
+    window.location.href = (isPages ? '' : isSrc ? '../pages/' : 'pages/') + 'login.php';
     return;
   }
   let list = getWishlist();
@@ -116,12 +235,17 @@ function itemCard(item, base = '') {
 // ── Topbar nav injection (HTML pages only) ────────────────────────────────────
 function renderTopbarNav() {
   const nav = document.getElementById('topbarNav');
-  if (!nav) return;
+  if (!nav || nav.dataset.serverRendered === 'true') return;
 
   const session = getSession();
-  const isPages = window.location.pathname.includes('/pages/');
-  const base    = isPages ? '' : 'pages/';
-  const root    = isPages ? '../' : '';
+  const path    = window.location.pathname;
+  const rootPath = path.includes('/pages/')
+    ? path.slice(0, path.indexOf('/pages/'))
+    : path.includes('/src/')
+      ? path.slice(0, path.indexOf('/src/'))
+      : '';
+  const base = `${rootPath}/pages/`;
+  const root = `${rootPath}/src/`;
 
   const themeBtn = `
     <button class="theme-toggle" id="themeToggle" title="Toggle theme">
@@ -201,4 +325,4 @@ document.getElementById('profileBtn')?.addEventListener('click', e => {
 });
 
 // ── Init nav on HTML pages ────────────────────────────────────────────────────
-renderTopbarNav();
+initAuthState().then(renderTopbarNav);
