@@ -15,9 +15,9 @@ finally:
 
 def generate_insert_sql(columns: list[str], table: str) -> str:
     placeholder = str.join(", ", (["%s"] * len(columns)))
-    columns_str = str.join(", ", columns)
+    columns = str.join(", ", columns)
 
-    return f"""INSERT INTO {table}({columns_str}) VALUES ({placeholder})"""
+    return f"""INSERT INTO {table}({columns}) VALUES ({placeholder})"""
 
 
 def error_handling_sql(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -30,6 +30,26 @@ def error_handling_sql(func: Callable[..., Any]) -> Callable[..., Any]:
             print(f"Unexpected ERROR: {e}")
 
     return wrapper
+
+
+@error_handling_sql
+def hash_password(cursor: MySQLCursorAbstract, password: str):
+    cursor.execute(f"SELECT PASSWORD('{password}')")
+
+    return cursor.fetchone()[0]
+
+
+@error_handling_sql
+def update_user_password(cursor: MySQLCursorAbstract, pk: str, value: str) -> None:
+    # Reminder to change this if the table name or column name are changed
+    cursor.execute(f"UPDATE Users SET password = '{value}' WHERE userID = {pk}")
+
+    
+@error_handling_sql
+def get_all_users(cursor: MySQLCursorAbstract):
+    cursor.execute("SELECT * from Users")
+
+    return cursor.fetchall()
 
 
 @error_handling_sql
@@ -52,9 +72,19 @@ def drop_db(cursor: MySQLCursorAbstract, db_name: str) -> None:
 
 
 @error_handling_sql
-def is_db_exists(cursor: MySQLCursorAbstract, db_name: str) -> bool:
+def is_db_exists(cursor: MySQLCursorAbstract, name: str) -> bool:
     cursor.execute(
-        f"SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{db_name}'"
+        f"SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{name}'"
+    )
+
+    return cursor.fetchone()[0] == 1
+
+
+@error_handling_sql
+def is_table_exists(cursor: MySQLCursorAbstract, table_db: str, table_name: str) -> bool:
+    cursor.execute(
+        f"""SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE 
+            TABLE_SCHEMA = '{table_db}' AND TABLE_NAME = '{table_name}'"""
     )
 
     return cursor.fetchone()[0] == 1
@@ -78,6 +108,7 @@ def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -
             table_name = tables["table"]
 
             print(f" - Adding values in table {table_name}")
+
         except KeyError as e:
             print(f"ERROR: Missing key {e} in {path}")
             return
@@ -158,6 +189,21 @@ def init():
         return
 
     insert_data_from_json(mysql_cursor, data_path)
+
+    mysql_dict_cursor = mysql_connection.cursor(dictionary=True)
+
+    # hash the passwords
+    if is_table_exists(mysql_cursor, db_name, "Users"):
+        users_with_hash = [ 
+            (entry["userID"], hash_password(mysql_cursor, entry["password"])) for entry in get_all_users(mysql_dict_cursor) 
+        ]
+
+        for pk, hashed_password in users_with_hash:
+            update_user_password(mysql_cursor, pk, hashed_password)
+
+        mysql_connection.commit()
+
+
     mysql_connection.close()
 
 
