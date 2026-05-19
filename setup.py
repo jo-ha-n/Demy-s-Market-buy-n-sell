@@ -124,12 +124,8 @@ def execute_sql_script_from_file(
     with open(path, encoding="utf-8") as f:
         content = f.read()
 
-    # split the sql statements then exec them one by one instead of exec the script as a whole
-    [
-        cursor.execute(cmd) for cmd in [
-            cmd.strip() for cmd in content.split(';') if cmd.strip()
-        ]
-    ]
+    for cmd in [ cmd.strip() for cmd in content.split(';') if cmd.strip() ]:
+        cursor.execute(cmd)
 
 
 def get_files(path: os.PathLike[str], endswith: str) -> list[str]:
@@ -195,7 +191,8 @@ def init():
     # hash the passwords
     if is_table_exists(mysql_cursor, db_name, "Users"):
         users_with_hash = [ 
-            (entry["userID"], hash_password(mysql_cursor, entry["password"])) for entry in get_all_users(mysql_dict_cursor) 
+            ( entry["userID"], hash_password(mysql_cursor, entry["password"]) )
+            for entry in get_all_users(mysql_dict_cursor) 
         ]
 
         for pk, hashed_password in users_with_hash:
@@ -203,9 +200,9 @@ def init():
 
         mysql_connection.commit()
 
-
     mysql_connection.close()
 
 
 if __name__ == "__main__":
     init()
+    
