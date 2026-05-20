@@ -90,11 +90,42 @@
     return new URLSearchParams(window.location.search);
   }
 
+  function parseDummySeed(raw) {
+    const categoriesRow = raw.find(entry => entry.table === 'Category');
+    const itemsRow = raw.find(entry => entry.table === 'Item');
+    const imagesRow = raw.find(entry => entry.table === 'Image');
+
+    const categories = (categoriesRow?.values || []).map(([categoryID, category_name]) => ({
+      categoryID,
+      category_name
+    }));
+
+    const categoryMap = Object.fromEntries(categories.map(c => [c.categoryID, c.category_name]));
+
+    const items = (itemsRow?.values || []).map(([itemID, sellerID, categoryID, title, price, description, address, status]) => ({
+      itemID,
+      sellerID,
+      categoryID,
+      category_name: categoryMap[categoryID] || '',
+      title,
+      price,
+      description,
+      address,
+      status,
+      images: [],
+      created_at: new Date().toISOString()
+    }));
+
+    (imagesRow?.values || []).forEach(([imageID, itemID, image]) => {
+      const item = items.find(i => i.itemID === itemID);
+      if (item) item.images.push(image);
+    });
+
+    return { categories, items };
+  }
+
   async function init() {
-    [allCats, allItems] = await Promise.all([
-      fetch('../src/dummy_data/categories.json').then(r => r.json()),
-      fetch('../src/dummy_data/items.json').then(r => r.json())
-    ]);
+    ({ categories: allCats, items: allItems } = parseDummySeed(await fetch('../data/dummy_data.json').then(r => r.json())));
 
     // Populate category dropdown
     const catSel = document.getElementById('filterCat');

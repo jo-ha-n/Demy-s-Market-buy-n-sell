@@ -883,12 +883,57 @@ function submitFeedback() {
   document.getElementById('feedbackThanks').style.display = 'block';
 }
 
+function parseDummySeed(raw) {
+  const categoriesRow = raw.find(entry => entry.table === 'Category');
+  const itemsRow = raw.find(entry => entry.table === 'Item');
+  const imagesRow = raw.find(entry => entry.table === 'Image');
+
+  const categories = (categoriesRow?.values || []).map(([categoryID, category_name]) => ({
+    categoryID,
+    category_name
+  }));
+
+  const categoryMap = Object.fromEntries(categories.map(c => [c.categoryID, c.category_name]));
+
+  const items = (itemsRow?.values || []).map(([itemID, sellerID, categoryID, title, price, description, address, status]) => ({
+    itemID,
+    sellerID,
+    categoryID,
+    category_name: categoryMap[categoryID] || '',
+    title,
+    price,
+    description,
+    address,
+    status,
+    images: [],
+    created_at: new Date().toISOString()
+  }));
+
+  (imagesRow?.values || []).forEach(([imageID, itemID, image]) => {
+    const item = items.find(i => i.itemID === itemID);
+    if (item) item.images.push(image);
+  });
+
+  const defaultCatImage = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22320%22 height=%22220%22%3E%3Crect width=%22100%25%22 height=%22100%25%22 fill=%22%23f3f4f6%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 fill=%22%239ca3af%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial,Helvetica,sans-serif%22 font-size=%2220%22%3ECATEGORY%3C/text%3E%3C/svg%3E';
+
+  const counts = items.reduce((acc, item) => {
+    if (item.status === 'active') {
+      acc[item.categoryID] = (acc[item.categoryID] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  categories.forEach(c => {
+    c.count = counts[c.categoryID] || 0;
+    c.image = c.image || defaultCatImage;
+  });
+
+  return { categories, items };
+}
+
 // Main loader
 async function loadHome() {
-  const [cats, items] = await Promise.all([
-    fetch('../dummy_data/categories.json').then(r => r.json()),
-    fetch('../dummy_data/items.json').then(r => r.json())
-  ]);
+  const { categories: cats, items } = parseDummySeed(await fetch('../data/dummy_data.json').then(r => r.json()));
 
   catData = cats;
   const totalItems = items.filter(i => i.status === 'active').length;

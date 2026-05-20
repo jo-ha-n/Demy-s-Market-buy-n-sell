@@ -62,7 +62,7 @@ $hideHeader = $hideHeader ?? false;
         <div class="profile-dropdown" id="profileDropdown">
           <a href="../pages/profile.php">My Profile</a>
           <div class="pd-divider"></div>
-          <a href="../pages/logout.php" class="pd-danger">Sign Out</a>
+          <a href="../pages/logout.php" class="pd-danger" onclick="clearSession()">Sign Out</a>
         </div>
       </div>
     <?php else: ?>
