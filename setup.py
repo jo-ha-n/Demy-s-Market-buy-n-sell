@@ -96,7 +96,7 @@ def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -
         data = json.load(file)
 
     if not isinstance(data, list):
-        print(f"ERROR: Expected a list of objects in {path}, got {type(data).__name__}")
+        print(f"ERROR: Expected a list of objects in {path}, got {type(data).__name__} instead")
         return
 
     print(f"{len(data)} tables found! Inserting Values")
@@ -131,7 +131,7 @@ def execute_sql_script_from_file(
 def get_files(path: os.PathLike[str], endswith: str) -> list[str]:
     return [ 
         os.path.join(path, file) for file in os.listdir(path)
-        # os.path.exists seems overkill 
+        # os.path.exists seems overkill, omitted it for now
         # if file.endswith(endswith) and os.path.exists(os.path.join(path, file))
         if file.endswith(endswith)
     ] 

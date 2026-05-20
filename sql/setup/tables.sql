@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS Users (
   userID         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   email          VARCHAR(255) NOT NULL UNIQUE,
   username       VARCHAR(80)  NOT NULL UNIQUE,
-  password       VARCHAR(255) NOT NULL COMMENT 'bcrypt hash',
+  password       VARCHAR(255) NOT NULL,
   date_joined    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   address        TEXT,
   contact_number VARCHAR(20),

@@ -23,7 +23,8 @@
             [5, "rare"],
             [6, "bundle"],
             [7, "urgent-sale"],
-            [8, "free-shipping"]
+            [8, "free-shipping"],
+            [9, "Something"]
         ]
     },
     {
