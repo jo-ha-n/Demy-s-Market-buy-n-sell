@@ -1,26 +1,10 @@
--- CREATE DATABASE IF NOT EXISTS dummy_demys_db
--- CHARACTER SET utf8mb4
--- COLLATE utf8mb4_unicode_ci;
-
--- USE dummy_demys_db;
-
 -- ── Category ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS Category (
   categoryID    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   category_name VARCHAR(80) NOT NULL
 ) ENGINE=InnoDB;
 
--- INSERT IGNORE INTO Category (categoryID, category_name) VALUES
---   (1, 'Vehicles'),
---   (2, 'Devices'),
---   (3, 'Clothes'),
---   (4, 'Sports'),
---   (5, 'Furniture'),
---   (6, 'Books'),
---   (7, 'Others');
-
 -- ── Tag ───────────────────────────────────────────────────────────
--- Free-form tags for image-board style filtering (e.g. "vintage", "negotiable")
 CREATE TABLE IF NOT EXISTS Tag (
   tagID INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name  VARCHAR(50) NOT NULL,
@@ -36,35 +20,33 @@ CREATE TABLE IF NOT EXISTS Users (
   date_joined    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   address        TEXT,
   contact_number VARCHAR(20),
-  role           ENUM('buyer', 'seller', 'admin') NOT NULL DEFAULT 'buyer'
+  role           ENUM('user', 'admin') NOT NULL DEFAULT 'user'
 ) ENGINE=InnoDB;
 
--- ── Users_image ─────────────────────────────────────────────────────────
+-- ── Users_image ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS Users_image (
   u_imageID  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  userID   INT UNSIGNED NOT NULL,
-  user_image  VARCHAR(500) NOT NULL COMMENT 'file path or URL',
+  userID     INT UNSIGNED NOT NULL,
+  user_image VARCHAR(500) NOT NULL COMMENT 'file path or URL',
   FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ── Item ──────────────────────────────────────────────────────────
--- Note: ratingID removed — compute avg rating via query on Reviews
 CREATE TABLE IF NOT EXISTS Item (
-  itemID      INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  sellerID    INT UNSIGNED    NOT NULL,
-  categoryID  INT UNSIGNED    NOT NULL,
-  title       VARCHAR(255)    NOT NULL,
-  price       DECIMAL(12, 2)  NOT NULL,
+  itemID      INT UNSIGNED   AUTO_INCREMENT PRIMARY KEY,
+  sellerID    INT UNSIGNED   NOT NULL,
+  categoryID  INT UNSIGNED   NOT NULL,
+  title       VARCHAR(255)   NOT NULL,
+  price       DECIMAL(12, 2) NOT NULL,
   description TEXT,
   address     VARCHAR(255),
-  status      ENUM('active', 'sold', 'archived') NOT NULL DEFAULT 'active',
-  created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  status      ENUM('available', 'pending', 'sold', 'archived') NOT NULL DEFAULT 'available',
+  created_at  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sellerID)   REFERENCES Users(userID)        ON DELETE CASCADE,
   FOREIGN KEY (categoryID) REFERENCES Category(categoryID)
 ) ENGINE=InnoDB;
 
 -- ── Item_Tag ──────────────────────────────────────────────────────
--- Many-to-many: one item can have multiple tags, one tag on many items
 CREATE TABLE IF NOT EXISTS Item_Tag (
   itemID INT UNSIGNED NOT NULL,
   tagID  INT UNSIGNED NOT NULL,
@@ -75,46 +57,59 @@ CREATE TABLE IF NOT EXISTS Item_Tag (
 
 -- ── Image ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS Image (
-  imageID  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  itemID   INT UNSIGNED NOT NULL,
-  images   VARCHAR(500) NOT NULL COMMENT 'file path or URL',
+  imageID INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  itemID  INT UNSIGNED NOT NULL,
+  images  VARCHAR(500) NOT NULL COMMENT 'file path or URL',
   FOREIGN KEY (itemID) REFERENCES Item(itemID) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ── Reviews ───────────────────────────────────────────────────────
--- Merged with Rating: one row owns both the star value and the review text.
--- Use AVG(rating) WHERE itemID = ? to compute the item's average rating.
 CREATE TABLE IF NOT EXISTS Reviews (
-  reviewID   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  itemID     INT UNSIGNED    NOT NULL,
-  userID     INT UNSIGNED    NOT NULL,
+  reviewID   INT UNSIGNED     AUTO_INCREMENT PRIMARY KEY,
+  itemID     INT UNSIGNED     NOT NULL,
+  userID     INT UNSIGNED     NOT NULL,
   rating     TINYINT UNSIGNED NOT NULL CHECK (rating BETWEEN 1 AND 5),
   body       TEXT,
-  created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_review (itemID, userID),   -- one review per user per item
+  created_at DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_review (itemID, userID),
   FOREIGN KEY (itemID) REFERENCES Item(itemID)  ON DELETE CASCADE,
   FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ── Transaction ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS Transaction (
-  transactionID INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  sellerID      INT UNSIGNED   NOT NULL,
-  buyerID       INT UNSIGNED   NOT NULL,
-  itemID        INT UNSIGNED   NOT NULL,
-  price         DECIMAL(12, 2) NOT NULL,
-  created_at    DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  transactionID    INT UNSIGNED   AUTO_INCREMENT PRIMARY KEY,
+  sellerID         INT UNSIGNED   NOT NULL,
+  buyerID          INT UNSIGNED   NOT NULL,
+  itemID           INT UNSIGNED   NOT NULL,
+  price            DECIMAL(12, 2) NOT NULL,
+
+  -- Each party independently records their decision
+  seller_agreement ENUM('pending', 'agreed', 'rejected') NOT NULL DEFAULT 'pending',
+  buyer_agreement  ENUM('pending', 'agreed', 'rejected') NOT NULL DEFAULT 'pending',
+
+  -- Overall transaction lifecycle gate
+  payment_status   ENUM('pending', 'ready_for_payment', 'completed', 'cancelled')
+                   NOT NULL DEFAULT 'pending',
+
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                            ON UPDATE CURRENT_TIMESTAMP,
+
   FOREIGN KEY (sellerID) REFERENCES Users(userID) ON DELETE RESTRICT,
   FOREIGN KEY (buyerID)  REFERENCES Users(userID) ON DELETE RESTRICT,
   FOREIGN KEY (itemID)   REFERENCES Item(itemID)  ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
 -- ── Payment ───────────────────────────────────────────────────────
+-- CHANGED: added status and paid_at for a complete audit trail.
 CREATE TABLE IF NOT EXISTS Payment (
-  paymentID      INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  paymentID      INT UNSIGNED   AUTO_INCREMENT PRIMARY KEY,
   transactionID  INT UNSIGNED   NOT NULL,
   payment_method VARCHAR(80)    NOT NULL,
   amount         DECIMAL(12, 2) NOT NULL,
+  status         ENUM('pending', 'completed', 'failed') NOT NULL DEFAULT 'pending',
+  paid_at        DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (transactionID) REFERENCES Transaction(transactionID) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -129,18 +124,18 @@ CREATE TABLE IF NOT EXISTS Wishlist (
 ) ENGINE=InnoDB;
 
 -- ── Conversation ──────────────────────────────────────────────────
--- UNIQUE ensures only one conversation thread exists per pair of users
 CREATE TABLE IF NOT EXISTS Conversation (
   conversationID CHAR(36)     PRIMARY KEY COMMENT 'UUID',
   userID_1       INT UNSIGNED NOT NULL,
   userID_2       INT UNSIGNED NOT NULL,
+  -- Always store the lower ID in userID_1 to prevent duplicate pairs
+  CONSTRAINT chk_user_order CHECK (userID_1 < userID_2),
   UNIQUE KEY uq_conversation (userID_1, userID_2),
   FOREIGN KEY (userID_1) REFERENCES Users(userID) ON DELETE CASCADE,
   FOREIGN KEY (userID_2) REFERENCES Users(userID) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ── Messages ──────────────────────────────────────────────────────
--- sent_at replaces the previous separate date + time columns
 CREATE TABLE IF NOT EXISTS Messages (
   messageID      INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   conversationID CHAR(36)     NOT NULL,
