@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '../../includes/helpers.php';
+require_once __DIR__ . '/../src/includes/helpers.php';
 requireLogin();
 
 $db  = getDB();
@@ -94,7 +94,7 @@ if ($activeConvID) {
 $pageTitle = "Messages — Demy's";
 // Override main wrapping for full-height layout
 $extraHead = '<style>.page-main{padding:0}</style>';
-require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../src/includes/header.php';
 ?>
 <script>window.__csrf = "<?= h($csrf) ?>";</script>
 
@@ -162,4 +162,4 @@ require_once __DIR__ . '/../includes/header.php';
   if (body) body.scrollTop = body.scrollHeight;
 </script>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
