@@ -36,7 +36,7 @@
     <div class="empty-icon">😕</div>
     <h3>Item not found</h3>
     <p>It may have been removed or sold.</p>
-    <a href="search.html" class="btn-accent" style="margin-top:16px;display:inline-block">Browse listings</a>
+    <a href="../pages/search.php" class="btn-accent" style="margin-top:16px;display:inline-block">Browse listings</a>
   </div>
 
   <!-- Item detail -->
@@ -74,7 +74,7 @@
     <section class="section" style="padding-top:0" id="moreSection">
       <div class="section-header">
         <h2 class="section-title">More listings</h2>
-        <a href="search.html" class="section-link">Browse all →</a>
+        <a href="../pages/search.php" class="section-link">Browse all →</a>
       </div>
       <div class="grid-4" id="moreGrid"></div>
     </section>
@@ -88,17 +88,12 @@
     <span class="footer-logo">Demy's</span>
     <span class="footer-copy">© 2026 — Buy &amp; Sell community marketplace</span>
     <div class="footer-links">
-      <a href="search.html">Browse</a><a href="sell.php">Sell</a>
-    </div>
-  </div>
-</footer>
-
-<script src="../assets/js/main.js"></script>
+          <a href="../pages/search.php">Browse</a><a href="sell.php">Sell</a>
 <script>
   function handleSearch(e) {
     e.preventDefault();
     const q = document.getElementById('topbarQ').value.trim();
-    window.location.href = `search.html?q=${encodeURIComponent(q)}`;
+    window.location.href = `../pages/search.php?q=${encodeURIComponent(q)}`;
   }
 
   function starsHTML(avg, count) {

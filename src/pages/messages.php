@@ -4,6 +4,7 @@ requireLogin();
 
 $db  = getDB();
 $uid = $_SESSION['userID'];
+$csrf = csrfToken();
 
 // If starting a new convo from item page
 $withID = (int) ($_GET['with'] ?? 0);

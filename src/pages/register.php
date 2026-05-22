@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/includes/helpers.php';
+$csrf = csrfToken();
 
 $ajax = $_GET['ajax'] ?? $_POST['ajax'] ?? null;
 if ($ajax === '1' && $_SERVER['REQUEST_METHOD'] === 'GET') {

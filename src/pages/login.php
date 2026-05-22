@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '../src/includes/helpers.php';
+require_once __DIR__ . '/../includes/helpers.php';
+$csrf = csrfToken();
 
 $ajax = $_GET['ajax'] ?? $_POST['ajax'] ?? null;
 if ($ajax === '1' && $_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -41,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = "Log In — Demy's";
 $hideHeader = true;
 $hideFooter = true;
-require_once __DIR__ . '/../src/includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
@@ -250,4 +251,4 @@ require_once __DIR__ . '/../src/includes/header.php';
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

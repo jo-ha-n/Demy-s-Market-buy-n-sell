@@ -6,6 +6,7 @@ $db      = getDB();
 $me      = currentUser();
 $errors  = [];
 $success = '';
+$csrf = csrfToken();
 
 /* ── Which profile are we viewing? ── */
 $viewID  = isset($_GET['id']) ? (int)$_GET['id'] : $me['userID'];

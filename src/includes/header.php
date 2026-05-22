@@ -33,7 +33,7 @@ $hideHeader = $hideHeader ?? false;
 <?php if (!$hideHeader): ?>
 <!--TOPBAR-->
 <header class="topbar" id="topbar">
-  <a href="../src/index.html" class="topbar-logo">Logo</a>
+  <a href="../index.html" class="topbar-logo">Logo</a>
 
   <form class="topbar-search" action="../pages/search.php" method="GET">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

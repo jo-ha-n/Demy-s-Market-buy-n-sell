@@ -647,7 +647,7 @@
       </form>
       <div class="hero-divider-or"><span>or</span></div>
       <p class="hero-cta-label">Make One</p>
-      <a href="../pages/sell.php" class="btn-accent btn-block" style="text-align:center;justify-content:center">Start Selling</a>
+      <a href="pages/sell.php" class="btn-accent btn-block" style="text-align:center;justify-content:center">Start Selling</a>
     </div>
   </div>
 </section>
@@ -660,7 +660,7 @@
     <div class="carousel-header">
       <h2 class="carousel-title">Popular Categories</h2>
       <div style="display:flex;align-items:center;gap:12px">
-        <a href="../pages/search.html" class="section-link" style="margin:0">Browse all →</a>
+        <a href="pages/search.php" class="section-link" style="margin:0">Browse all →</a>
         <div class="carousel-arrows">
           <button class="carousel-btn" id="catPrev">‹</button>
           <button class="carousel-btn" id="catNext">›</button>
@@ -677,7 +677,7 @@
   <section class="rec-section">
     <div class="section-header">
       <h2 class="section-title">Recommended For You</h2>
-      <a href="../pages/search.html" class="section-link">See all →</a>
+      <a href="pages/search.php" class="section-link">See all →</a>
     </div>
     <div id="recContent">
       <!-- injected by JS: grid or login gate -->
@@ -702,7 +702,7 @@
     </div>
 
     <div style="text-align:center;margin-top:28px">
-      <a href="../pages/search.html" class="btn-ghost">View all listings</a>
+      <a href="pages/search.php" class="btn-ghost">View all listings</a>
     </div>
   </section>
 
@@ -720,9 +720,9 @@
         A community-driven buy and sell marketplace — connecting buyers and sellers with fair prices and honest deals.
       </p>
       <div class="footer-links-list">
-        <a href="../pages/search.html">Browse Listings</a>
-        <a href="../pages/sell.php">Start Selling</a>
-        <a href="../pages/register.php">Join the Community</a>
+        <a href="pages/search.php">Browse Listings</a>
+        <a href="pages/sell.php">Start Selling</a>
+        <a href="pages/register.php">Join the Community</a>
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Service</a>
       </div>
@@ -757,7 +757,7 @@
 function handleSearch(e) {
   e.preventDefault();
   const q = (document.getElementById('heroQ')?.value || document.getElementById('topbarQ')?.value || '').trim();
-  window.location.href = `../pages/search.html?q=${encodeURIComponent(q)}`;
+  window.location.href = `pages/search.php?q=${encodeURIComponent(q)}`;
 }
 
 function showFlashMessage(message) {
@@ -945,7 +945,7 @@ async function loadHome() {
   // Carousel slides
   const track = document.getElementById('catTrack');
   track.innerHTML = cats.map(c => `
-    <a href="../pages/search.html?category=${c.categoryID}" class="carousel-slide cat-card">
+    <a href="pages/search.php?category=${c.categoryID}" class="carousel-slide cat-card">
       <img src="${c.image}" alt="${c.category_name}" loading="lazy"/>
       <div class="cat-card-overlay">
         <div class="cat-card-name">${c.category_name}</div>
@@ -957,7 +957,7 @@ async function loadHome() {
   // Topbar category tabs
   const tabsEl = document.getElementById('topbarCats');
   tabsEl.innerHTML = ['All', ...cats.map(c => c.category_name)].map((name, i) => {
-    const href = i === 0 ? '../pages/search.html' : `../pages/search.html?category=${i}`;
+    const href = i === 0 ? 'pages/search.php' : `pages/search.php?category=${i}`;
     return `<a href="${href}" class="topbar-cat-tab ${i===0?'active':''}"
                onclick="document.querySelectorAll('.topbar-cat-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
               ${name}
@@ -980,8 +980,8 @@ async function loadHome() {
           <h3>Personalized just for you</h3>
           <p>Log in to see items recommended based on your browsing and wishlist.</p>
           <div class="rec-login-actions">
-            <a href="../pages/login.php" class="btn-accent">Log In to View</a>
-            <a href="../pages/register.php" class="btn-ghost">Sign Up Free</a>
+            <a href="pages/login.php" class="btn-accent">Log In to View</a>
+            <a href="pages/register.php" class="btn-ghost">Sign Up Free</a>
           </div>
         </div>
       </div>`;

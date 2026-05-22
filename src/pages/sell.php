@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../src/includes/helpers.php';
+require_once __DIR__ . '/../includes/helpers.php';
 requireLogin();
 
 $db   = getDB();
@@ -7,6 +7,7 @@ $cats = $db->query('SELECT * FROM Category')->fetch_all(MYSQLI_ASSOC);
 $user = currentUser();
 $errors = [];
 $success = false;
+$csrf = csrfToken();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
