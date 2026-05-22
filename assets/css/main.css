@@ -611,6 +611,14 @@ tr:hover td { background: var(--surface2); }
   box-shadow: var(--shadow);
 }
 .page-card-title { font-size: 22px; margin-bottom: 28px; }
+
+/* Filters sidebar placement and centered results header */
+@media (min-width: 900px) {
+  aside { position: sticky; top: calc(var(--topbar-h) + 18px); align-self: start; left: calc((100vw - 1200px) / 2 + 32px); }
+}
+
+.search-results-inner { max-width: 760px; margin: 0 auto; text-align: center; }
+.search-results-inner .section-title { text-align: left; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
 @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 

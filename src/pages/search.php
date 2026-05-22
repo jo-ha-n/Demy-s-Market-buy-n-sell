@@ -11,6 +11,12 @@ $offset = ($page - 1) * $limit;
 
 $categoryResult = $db->query('SELECT categoryID, category_name FROM Category ORDER BY category_name');
 $categories = $categoryResult ? $categoryResult->fetch_all(MYSQLI_ASSOC) : [];
+// Tags and price range for filters
+$tagResult = $db->query('SELECT tagID, name FROM Tag ORDER BY name');
+$tags = $tagResult ? $tagResult->fetch_all(MYSQLI_ASSOC) : [];
+$minMax = $db->query("SELECT MIN(price) AS minp, MAX(price) AS maxp FROM Item WHERE status='available'")->fetch_assoc();
+$globalMin = $minMax['minp'] !== null ? (float)$minMax['minp'] : 0.0;
+$globalMax = $minMax['maxp'] !== null ? (float)$minMax['maxp'] : 0.0;
 
 $where = ["i.status = 'available'"];
 if ($search !== '') {
@@ -19,6 +25,29 @@ if ($search !== '') {
 }
 if ($category > 0) {
     $where[] = 'i.categoryID = ' . $category;
+}
+
+// Tags filter (multiple)
+$selectedTags = array_map('intval', (array)($_GET['tags'] ?? []));
+if (!empty($selectedTags)) {
+  $ids = implode(',', $selectedTags);
+  $where[] = "EXISTS (SELECT 1 FROM Item_Tag it WHERE it.itemID = i.itemID AND it.tagID IN ({$ids}))";
+}
+
+// Price range
+$minPrice = is_numeric($_GET['min_price'] ?? null) ? (float)$_GET['min_price'] : null;
+$maxPrice = is_numeric($_GET['max_price'] ?? null) ? (float)$_GET['max_price'] : null;
+if ($minPrice !== null) {
+  $where[] = 'i.price >= ' . $db->real_escape_string((string)$minPrice);
+}
+if ($maxPrice !== null) {
+  $where[] = 'i.price <= ' . $db->real_escape_string((string)$maxPrice);
+}
+
+// Has image filter
+$hasImage = isset($_GET['has_image']) ? 1 : 0;
+if ($hasImage) {
+  $where[] = "EXISTS (SELECT 1 FROM Image im WHERE im.itemID = i.itemID)";
 }
 
 switch ($sort) {
@@ -58,7 +87,11 @@ function buildQuery(array $overrides = []): string {
         'q' => ($overrides['q'] ?? $_GET['q'] ?? ''),
         'category' => ($overrides['category'] ?? $_GET['category'] ?? ''),
         'sort' => ($overrides['sort'] ?? $_GET['sort'] ?? ''),
-        'page' => ($overrides['page'] ?? $_GET['page'] ?? ''),
+    'page' => ($overrides['page'] ?? $_GET['page'] ?? ''),
+    'tags' => ($overrides['tags'] ?? $_GET['tags'] ?? ''),
+    'min_price' => ($overrides['min_price'] ?? $_GET['min_price'] ?? ''),
+    'max_price' => ($overrides['max_price'] ?? $_GET['max_price'] ?? ''),
+    'has_image' => ($overrides['has_image'] ?? $_GET['has_image'] ?? ''),
     ], function ($value) {
         return $value !== '' && $value !== null;
     });
@@ -67,51 +100,84 @@ function buildQuery(array $overrides = []): string {
 ?>
 
 <div class="container">
-  <div class="section" style="max-width:1040px;margin:0 auto">
-    <div class="section-header" style="justify-content:space-between;flex-wrap:wrap;gap:18px">
-      <div>
-        <h1 class="section-title">Browse listings</h1>
-        <p class="section-count"><?= number_format($total) ?> item<?= $total === 1 ? '' : 's' ?> found</p>
-      </div>
-    </div>
+  <div class="section" style="max-width:1200px;margin:0 auto;display:flex;gap:24px">
+    <!-- Filters sidebar -->
+    <aside style="width:260px">
+      <div class="page-card">
+        <h3 class="page-card-title">Filters</h3>
+        <form id="filtersForm" action="search.php" method="GET">
+          <div style="margin-bottom:12px">
+            <label class="form-label">Keyword</label>
+            <input type="text" name="q" class="form-control" value="<?= h($search) ?>" placeholder="Search listings…" />
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-control">
+              <option value="0">All categories</option>
+              <?php foreach ($categories as $cat): ?>
+                <option value="<?= h($cat['categoryID']) ?>" <?= $category === (int) $cat['categoryID'] ? 'selected' : '' ?>>
+                  <?= h($cat['category_name']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
 
-    <form action="search.php" method="GET" style="display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 24px;align-items:flex-end">
-      <div class="topbar-search" style="flex:2;min-width:220px">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-        </svg>
-        <input type="text" name="q" placeholder="Search listings…" value="<?= h($search) ?>" />
+          <div style="margin-bottom:12px">
+            <label class="form-label">Tags</label>
+            <div style="max-height:160px;overflow:auto;padding-right:6px">
+              <?php foreach ($tags as $t): ?>
+                <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><input type="checkbox" name="tags[]" value="<?= h($t['tagID']) ?>" <?= in_array((int)$t['tagID'],$selectedTags) ? 'checked' : '' ?>/> <?= h($t['name']) ?></label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <label class="form-label">Price range</label>
+            <div style="display:flex;gap:8px">
+              <input type="number" name="min_price" class="form-control" placeholder="Min" step="0.01" value="<?= h($minPrice ?? '') ?>" min="<?= h($globalMin) ?>" />
+              <input type="number" name="max_price" class="form-control" placeholder="Max" step="0.01" value="<?= h($maxPrice ?? '') ?>" max="<?= h($globalMax) ?>" />
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">Range: <?= formatPrice($globalMin) ?> — <?= formatPrice($globalMax) ?></div>
+          </div>
+
+          <div style="margin-bottom:12px">
+            <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="has_image" value="1" <?= $hasImage ? 'checked' : '' ?>/> Has photo</label>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn-accent" type="submit">Apply</button>
+            <a class="btn-ghost" href="search.php">Clear</a>
+          </div>
+        </form>
       </div>
-      <div style="flex:1;min-width:180px">
-        <label class="form-label" for="categorySelect">Category</label>
-        <select id="categorySelect" name="category" class="form-control">
-          <option value="0">All categories</option>
-          <?php foreach ($categories as $cat): ?>
-            <option value="<?= h($cat['categoryID']) ?>" <?= $category === (int) $cat['categoryID'] ? 'selected' : '' ?>>
-              <?= h($cat['category_name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+    </aside>
+
+    <!-- Results -->
+    <div style="flex:1">
+      <div class="search-results-inner">
+      <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <h1 class="section-title">Browse listings</h1>
+          <p class="section-count"><?= number_format($total) ?> item<?= $total === 1 ? '' : 's' ?> found</p>
+        </div>
+        <div>
+          <label class="form-label">Sort</label>
+          <select id="sortSelect" name="sort" form="filtersForm" class="form-control" style="min-width:160px">
+            <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest</option>
+            <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>Price ↑</option>
+            <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price ↓</option>
+          </select>
+        </div>
       </div>
-      <div style="flex:1;min-width:180px">
-        <label class="form-label" for="sortSelect">Sort</label>
-        <select id="sortSelect" name="sort" class="form-control">
-          <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest</option>
-          <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>Price ↑</option>
-          <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price ↓</option>
-        </select>
       </div>
-      <div style="display:flex;gap:10px">
-        <button class="btn-accent" type="submit">Apply</button>
-        <a class="btn-ghost" href="search.php">Clear</a>
-      </div>
-    </form>
 
     <?php if (empty($items)): ?>
-      <div class="empty" style="padding:40px;text-align:center;grid-column:1/-1">
+      <div class="search-results-inner">
+      <div class="empty" style="padding:40px;text-align:center;width:100%">
         <div class="empty-icon">🔍</div>
         <h3>No listings match your search.</h3>
         <p>Try a different keyword or category.</p>
+      </div>
       </div>
     <?php else: ?>
       <div class="grid-4">
