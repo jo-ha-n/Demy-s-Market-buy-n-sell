@@ -48,7 +48,8 @@
             [3, 2, 3, "Levi's 501 Jeans - Size 32", 850.00, "Authentic Levi's, worn twice only. Great condition.", "Cavite, Indang", "sold"],
             [4, 6, 1, "Honda Beat 2021", 58000.00, "Well-maintained, complete documents, low mileage.", "Cavite, Trece Martires", "available"],
             [5, 6, 4, "Badminton Racket Set", 1100.00, "Set of 2 rackets with shuttlecocks and carry bag.", "Cavite, Trece Martires", "available"],
-            [6, 6, 6, "Harry Potter Complete Book Series", 2200.00, "All 7 books, hardcover, excellent condition.", "Cavite, Trece Martires", "archived"]
+            [6, 6, 6, "Harry Potter Complete Book Series", 2200.00, "All 7 books, hardcover, excellent condition.", "Cavite, Trece Martires", "archived"],
+            [7, 6, 6, "Learn Python Programming: A comprehensive, up-to-date, and definitive guide", 5000, "Barely Used", "Cavite, Trece Martires", "available"]
         ]
     },
     {
@@ -66,7 +67,8 @@
             [5, 3],
             [5, 6],
             [6, 1],
-            [6, 5]
+            [6, 5],
+            [7, 3]
         ]
     },
     {
@@ -80,7 +82,8 @@
             [6, 4, "uploads/items/4/honda_beat_side.jpg"],
             [7, 4, "uploads/items/4/honda_beat_front.jpg"],
             [8, 5, "uploads/items/5/badminton_set.jpg"],
-            [9, 6, "uploads/items/6/hp_books_full.jpg"]
+            [9, 6, "uploads/items/6/hp_books_full.jpg"],
+            [10, 7, "uploads/items/7/front.jpg"]
         ]
     },
     {
