@@ -70,9 +70,16 @@ $totalPages = max(1, (int) ceil($total / $limit));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * $limit;
 
-$sql = "SELECT i.*, c.category_name, (SELECT images FROM Image im WHERE im.itemID = i.itemID ORDER BY im.imageID LIMIT 1) AS image
+$sql = "SELECT i.*, c.category_name, im.images AS image
         FROM Item i
         LEFT JOIN Category c ON c.categoryID = i.categoryID
+        LEFT JOIN (
+            SELECT itemID, images
+            FROM Image
+            WHERE imageID IN (
+                SELECT MIN(imageID) FROM Image GROUP BY itemID
+            )
+        ) im ON im.itemID = i.itemID
         WHERE {$whereSql}
         ORDER BY {$order}
         LIMIT {$limit} OFFSET {$offset}";
@@ -185,7 +192,7 @@ function buildQuery(array $overrides = []): string {
           <a class="card item-card" href="../templates/item.html?id=<?= h($item['itemID']) ?>">
             <?php if (!empty($item['image'])): ?>
               <div class="item-card-img-wrap">
-                <img class="item-card-img" src="../uploads/<?= h($item['image']) ?>" alt="<?= h($item['title']) ?>" loading="lazy" />
+                <img class="item-card-img" src="../../uploads/items/<?= h($item['image']) ?>" alt="<?= h($item['title']) ?>" loading="lazy" />
               </div>
             <?php else: ?>
               <div class="item-card-img-wrap">
