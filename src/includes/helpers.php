@@ -1,6 +1,7 @@
 <?php
 // Demy's — Shared Helpers
 require_once dirname(__DIR__, 2) . '/config/database.php';
+define('BASE_URL', rtrim(dirname(dirname(dirname($_SERVER['SCRIPT_NAME']))), '/'));
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

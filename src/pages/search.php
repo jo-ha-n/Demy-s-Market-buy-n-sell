@@ -11,7 +11,6 @@ $offset = ($page - 1) * $limit;
 
 $categoryResult = $db->query('SELECT categoryID, category_name FROM Category ORDER BY category_name');
 $categories = $categoryResult ? $categoryResult->fetch_all(MYSQLI_ASSOC) : [];
-// Tags and price range for filters
 $tagResult = $db->query('SELECT tagID, name FROM Tag ORDER BY name');
 $tags = $tagResult ? $tagResult->fetch_all(MYSQLI_ASSOC) : [];
 $minMax = $db->query("SELECT MIN(price) AS minp, MAX(price) AS maxp FROM Item WHERE status='available'")->fetch_assoc();
@@ -27,27 +26,24 @@ if ($category > 0) {
     $where[] = 'i.categoryID = ' . $category;
 }
 
-// Tags filter (multiple)
 $selectedTags = array_map('intval', (array)($_GET['tags'] ?? []));
 if (!empty($selectedTags)) {
-  $ids = implode(',', $selectedTags);
-  $where[] = "EXISTS (SELECT 1 FROM Item_Tag it WHERE it.itemID = i.itemID AND it.tagID IN ({$ids}))";
+    $ids = implode(',', $selectedTags);
+    $where[] = "EXISTS (SELECT 1 FROM Item_Tag it WHERE it.itemID = i.itemID AND it.tagID IN ({$ids}))";
 }
 
-// Price range
 $minPrice = is_numeric($_GET['min_price'] ?? null) ? (float)$_GET['min_price'] : null;
 $maxPrice = is_numeric($_GET['max_price'] ?? null) ? (float)$_GET['max_price'] : null;
 if ($minPrice !== null) {
-  $where[] = 'i.price >= ' . $db->real_escape_string((string)$minPrice);
+    $where[] = 'i.price >= ' . $db->real_escape_string((string)$minPrice);
 }
 if ($maxPrice !== null) {
-  $where[] = 'i.price <= ' . $db->real_escape_string((string)$maxPrice);
+    $where[] = 'i.price <= ' . $db->real_escape_string((string)$maxPrice);
 }
 
-// Has image filter
 $hasImage = isset($_GET['has_image']) ? 1 : 0;
 if ($hasImage) {
-  $where[] = "EXISTS (SELECT 1 FROM Image im WHERE im.itemID = i.itemID)";
+    $where[] = "EXISTS (SELECT 1 FROM Image im WHERE im.itemID = i.itemID)";
 }
 
 switch ($sort) {
@@ -61,6 +57,7 @@ switch ($sort) {
         $order = 'i.created_at DESC';
         break;
 }
+
 $whereSql = implode(' AND ', $where);
 
 $countSql = "SELECT COUNT(*) AS total FROM Item i WHERE {$whereSql}";
@@ -91,14 +88,14 @@ require_once __DIR__ . '/../includes/header.php';
 
 function buildQuery(array $overrides = []): string {
     $params = array_filter([
-        'q' => ($overrides['q'] ?? $_GET['q'] ?? ''),
-        'category' => ($overrides['category'] ?? $_GET['category'] ?? ''),
-        'sort' => ($overrides['sort'] ?? $_GET['sort'] ?? ''),
-    'page' => ($overrides['page'] ?? $_GET['page'] ?? ''),
-    'tags' => ($overrides['tags'] ?? $_GET['tags'] ?? ''),
-    'min_price' => ($overrides['min_price'] ?? $_GET['min_price'] ?? ''),
-    'max_price' => ($overrides['max_price'] ?? $_GET['max_price'] ?? ''),
-    'has_image' => ($overrides['has_image'] ?? $_GET['has_image'] ?? ''),
+        'q'         => ($overrides['q']         ?? $_GET['q']         ?? ''),
+        'category'  => ($overrides['category']  ?? $_GET['category']  ?? ''),
+        'sort'      => ($overrides['sort']       ?? $_GET['sort']      ?? ''),
+        'page'      => ($overrides['page']       ?? $_GET['page']      ?? ''),
+        'tags'      => ($overrides['tags']       ?? $_GET['tags']      ?? ''),
+        'min_price' => ($overrides['min_price']  ?? $_GET['min_price'] ?? ''),
+        'max_price' => ($overrides['max_price']  ?? $_GET['max_price'] ?? ''),
+        'has_image' => ($overrides['has_image']  ?? $_GET['has_image'] ?? ''),
     ], function ($value) {
         return $value !== '' && $value !== null;
     });
@@ -108,21 +105,27 @@ function buildQuery(array $overrides = []): string {
 
 <div class="container">
   <div class="section" style="max-width:1200px;margin:0 auto;display:flex;gap:24px">
+
     <!-- Filters sidebar -->
     <aside style="width:260px">
       <div class="page-card">
         <h3 class="page-card-title">Filters</h3>
         <form id="filtersForm" action="search.php" method="GET">
+
+          <!-- Hidden sort input so it's always submitted with the form -->
+          <input type="hidden" name="sort" id="sortHidden" value="<?= h($sort) ?>" />
+
           <div style="margin-bottom:12px">
             <label class="form-label">Keyword</label>
             <input type="text" name="q" class="form-control" value="<?= h($search) ?>" placeholder="Search listings…" />
           </div>
+
           <div style="margin-bottom:12px">
             <label class="form-label">Category</label>
             <select name="category" class="form-control">
               <option value="0">All categories</option>
               <?php foreach ($categories as $cat): ?>
-                <option value="<?= h($cat['categoryID']) ?>" <?= $category === (int) $cat['categoryID'] ? 'selected' : '' ?>>
+                <option value="<?= h($cat['categoryID']) ?>" <?= $category === (int)$cat['categoryID'] ? 'selected' : '' ?>>
                   <?= h($cat['category_name']) ?>
                 </option>
               <?php endforeach; ?>
@@ -133,7 +136,10 @@ function buildQuery(array $overrides = []): string {
             <label class="form-label">Tags</label>
             <div style="max-height:160px;overflow:auto;padding-right:6px">
               <?php foreach ($tags as $t): ?>
-                <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><input type="checkbox" name="tags[]" value="<?= h($t['tagID']) ?>" <?= in_array((int)$t['tagID'],$selectedTags) ? 'checked' : '' ?>/> <?= h($t['name']) ?></label>
+                <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                  <input type="checkbox" name="tags[]" value="<?= h($t['tagID']) ?>" <?= in_array((int)$t['tagID'], $selectedTags) ? 'checked' : '' ?> />
+                  <?= h($t['name']) ?>
+                </label>
               <?php endforeach; ?>
             </div>
           </div>
@@ -148,13 +154,16 @@ function buildQuery(array $overrides = []): string {
           </div>
 
           <div style="margin-bottom:12px">
-            <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="has_image" value="1" <?= $hasImage ? 'checked' : '' ?>/> Has photo</label>
+            <label style="display:flex;align-items:center;gap:8px">
+              <input type="checkbox" name="has_image" value="1" <?= $hasImage ? 'checked' : '' ?> /> Has photo
+            </label>
           </div>
 
           <div style="display:flex;gap:8px;margin-top:8px">
             <button class="btn-accent" type="submit">Apply</button>
             <a class="btn-ghost" href="search.php">Clear</a>
           </div>
+
         </form>
       </div>
     </aside>
@@ -162,71 +171,76 @@ function buildQuery(array $overrides = []): string {
     <!-- Results -->
     <div style="flex:1">
       <div class="search-results-inner">
-      <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div>
-          <h1 class="section-title">Browse listings</h1>
-          <p class="section-count"><?= number_format($total) ?> item<?= $total === 1 ? '' : 's' ?> found</p>
+        <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <h1 class="section-title">Browse listings</h1>
+            <p class="section-count"><?= number_format($total) ?> item<?= $total === 1 ? '' : 's' ?> found</p>
+          </div>
+          <div>
+            <label class="form-label">Sort</label>
+            <!-- Visual dropdown — updates hidden input and auto-submits -->
+            <select id="sortSelect" class="form-control" style="min-width:160px"
+                    onchange="document.getElementById('sortHidden').value=this.value; document.getElementById('filtersForm').submit();">
+              <option value="newest"     <?= $sort === 'newest'     ? 'selected' : '' ?>>Newest</option>
+              <option value="price_asc"  <?= $sort === 'price_asc'  ? 'selected' : '' ?>>Price ↑</option>
+              <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price ↓</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label class="form-label">Sort</label>
-          <select id="sortSelect" name="sort" form="filtersForm" class="form-control" style="min-width:160px">
-            <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest</option>
-            <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>Price ↑</option>
-            <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price ↓</option>
-          </select>
+      </div>
+
+      <?php if (empty($items)): ?>
+        <div class="search-results-inner">
+          <div class="empty" style="padding:40px;text-align:center;width:100%">
+            <div class="empty-icon">🔍</div>
+            <h3>No listings match your search.</h3>
+            <p>Try a different keyword or category.</p>
+          </div>
         </div>
-      </div>
-      </div>
-
-    <?php if (empty($items)): ?>
-      <div class="search-results-inner">
-      <div class="empty" style="padding:40px;text-align:center;width:100%">
-        <div class="empty-icon">🔍</div>
-        <h3>No listings match your search.</h3>
-        <p>Try a different keyword or category.</p>
-      </div>
-      </div>
-    <?php else: ?>
-      <div class="grid-4">
-        <?php foreach ($items as $item): ?>
-          <a class="card item-card" href="../templates/item.html?id=<?= h($item['itemID']) ?>">
-            <?php if (!empty($item['image'])): ?>
-              <div class="item-card-img-wrap">
-                <img class="item-card-img" src="../../uploads/items/<?= h($item['image']) ?>" alt="<?= h($item['title']) ?>" loading="lazy" />
+      <?php else: ?>
+        <div class="grid-4">
+          <?php foreach ($items as $item): ?>
+            <a class="card item-card" href="../templates/item.html?id=<?= h($item['itemID']) ?>">
+              <?php if (!empty($item['image'])): ?>
+                <div class="item-card-img-wrap">
+                  <img class="item-card-img" src="/GitHub/Demy-s-Market-buy-n-sell/<?= h($item['image']) ?>" alt="<?= h($item['title']) ?>" loading="lazy" />
+                  <img class="item-card-img" src="<?= BASE_URL ?>/<?= h($item['image']) ?>" alt="<?= h($item['title']) ?>" loading="lazy" />
+                </div>
+              <?php else: ?>
+                <div class="item-card-img-wrap">
+                  <div class="item-card-img" style="display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--surface2)">📦</div>
+                </div>
+              <?php endif; ?>
+              <div style="padding:16px">
+                <p class="item-card-title"><?= h($item['title']) ?></p>
+                <p class="item-card-price"><?= formatPrice((float)$item['price']) ?></p>
+                <div class="item-card-meta">
+                  <?= h($item['category_name'] ?? 'Uncategorized') ?>
+                  <?= $item['address'] ? '&middot; ' . h($item['address']) : '' ?>
+                </div>
               </div>
-            <?php else: ?>
-              <div class="item-card-img-wrap">
-                <div class="item-card-img" style="display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--surface2)">📦</div>
-              </div>
-            <?php endif; ?>
-            <div style="padding:16px">
-              <p class="item-card-title"><?= h($item['title']) ?></p>
-              <p class="item-card-price"><?= formatPrice((float) $item['price']) ?></p>
-              <div class="item-card-meta">
-                <?= h($item['category_name'] ?? 'Uncategorized') ?>
-                <?= $item['address'] ? '&middot; ' . h($item['address']) : '' ?>
-              </div>
-            </div>
-          </a>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
-    <?php if ($totalPages > 1): ?>
-      <div class="pagination" style="justify-content:center;margin-top:28px">
-        <?php if ($page > 1): ?>
-          <a class="pagination-link" href="search.php?<?= buildQuery(['page' => $page - 1]) ?>">‹ Previous</a>
-        <?php endif; ?>
+      <?php if ($totalPages > 1): ?>
+        <div class="pagination" style="justify-content:center;margin-top:28px">
+          <?php if ($page > 1): ?>
+            <a class="pagination-link" href="search.php?<?= buildQuery(['page' => $page - 1]) ?>">‹ Previous</a>
+          <?php endif; ?>
 
-        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-          <a class="pagination-link<?= $i === $page ? ' active' : '' ?>" href="search.php?<?= buildQuery(['page' => $i]) ?>"><?= $i ?></a>
-        <?php endfor; ?>
+          <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <a class="pagination-link<?= $i === $page ? ' active' : '' ?>" href="search.php?<?= buildQuery(['page' => $i]) ?>"><?= $i ?></a>
+          <?php endfor; ?>
 
-        <?php if ($page < $totalPages): ?>
-          <a class="pagination-link" href="search.php?<?= buildQuery(['page' => $page + 1]) ?>">Next ›</a>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
+          <?php if ($page < $totalPages): ?>
+            <a class="pagination-link" href="search.php?<?= buildQuery(['page' => $page + 1]) ?>">Next ›</a>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
+
+    </div>
   </div>
 </div>
 
