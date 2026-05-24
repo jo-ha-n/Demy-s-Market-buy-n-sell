@@ -107,6 +107,33 @@ h1,h2,h3,h4,h5 {
   transition: background var(--transition), border-color var(--transition);
 }
 
+/* ── Dynamic Layout Brand Logo System ─────────────────────────── */
+.topbar-logo {
+  display: inline-block;
+  width: 60px !important;
+  height: 50px !important;
+  flex-shrink: 0 !important;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+  text-indent: -9999px;
+  overflow: hidden;
+  transition: background-image 0.15s ease-in-out;
+}
+/* Light Theme */
+:root, html[data-theme="light"] {
+  --app-logo: url('../../assets/img/Black.png');
+}
+/* Dark Theme State Override configurations */
+html[data-theme="dark"] {
+  --app-logo: url('../../assets/img/White.png');
+}
+.topbar-logo {
+  background-image: var(--app-logo);
+}
+.topbar-logo:hover {
+  background-image: url('../../assets/img/Orange.png') !important;
+}
 .topbar-logo {
   font-family: 'Syne', sans-serif;
   font-weight: 800;
@@ -643,6 +670,25 @@ tr:hover td { background: var(--surface2); }
 .star.filled { color: #f59e0b; }
 
 /* ── Footer ────────────────────────────────────────────────────── */
+:root, html[data-theme="light"] {
+  --footer-logo-file: url('../img/Black.png');
+}
+html[data-theme="dark"] {
+  --footer-logo-file: url('../img/White.png');
+}
+.footer-logo-img {
+  display: inline-block !important;
+  width: 120px !important;       
+  height: 70px !important;       
+  background-image: var(--footer-logo-file) !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: left center !important;
+  text-indent: -9999px !important;
+  overflow: hidden !important;
+  pointer-events: none;
+  cursor: default;
+}  
 .site-footer {
   border-top: 1px solid var(--border);
   background: var(--surface);

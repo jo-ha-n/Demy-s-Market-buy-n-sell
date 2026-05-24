@@ -11,8 +11,13 @@ $offset   = ($page - 1) * $limit;
 
 /* ── Lookup data ── */
 $categoryResult = $db->query('SELECT categoryID, category_name FROM Category ORDER BY category_name');
+<<<<<<< HEAD
 $categories     = $categoryResult ? $categoryResult->fetch_all(MYSQLI_ASSOC) : [];
 
+=======
+$categories = $categoryResult ? $categoryResult->fetch_all(MYSQLI_ASSOC) : [];
+// Tags and price range for filters
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
 $tagResult = $db->query('SELECT tagID, name FROM Tag ORDER BY name');
 $tags      = $tagResult ? $tagResult->fetch_all(MYSQLI_ASSOC) : [];
 
@@ -39,18 +44,38 @@ if ($search !== '') {
 if ($category > 0) {
     $where[] = 'i.categoryID = ' . $category;
 }
+<<<<<<< HEAD
 if (!empty($selectedTags)) {
     $ids     = implode(',', $selectedTags);
     $where[] = "EXISTS (SELECT 1 FROM Item_Tag it WHERE it.itemID = i.itemID AND it.tagID IN ({$ids}))";
 }
+=======
+
+// Tags filter (multiple)
+$selectedTags = array_map('intval', (array)($_GET['tags'] ?? []));
+if (!empty($selectedTags)) {
+  $ids = implode(',', $selectedTags);
+  $where[] = "EXISTS (SELECT 1 FROM Item_Tag it WHERE it.itemID = i.itemID AND it.tagID IN ({$ids}))";
+}
+
+// Price range
+$minPrice = is_numeric($_GET['min_price'] ?? null) ? (float)$_GET['min_price'] : null;
+$maxPrice = is_numeric($_GET['max_price'] ?? null) ? (float)$_GET['max_price'] : null;
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
 if ($minPrice !== null) {
-    $where[] = 'i.price >= ' . $db->real_escape_string((string)$minPrice);
+  $where[] = 'i.price >= ' . $db->real_escape_string((string)$minPrice);
 }
 if ($maxPrice !== null) {
-    $where[] = 'i.price <= ' . $db->real_escape_string((string)$maxPrice);
+  $where[] = 'i.price <= ' . $db->real_escape_string((string)$maxPrice);
 }
+<<<<<<< HEAD
+=======
+
+// Has image filter
+$hasImage = isset($_GET['has_image']) ? 1 : 0;
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
 if ($hasImage) {
-    $where[] = "EXISTS (SELECT 1 FROM Image im WHERE im.itemID = i.itemID)";
+  $where[] = "EXISTS (SELECT 1 FROM Image im WHERE im.itemID = i.itemID)";
 }
 // Haversine distance filter — requires i.latitude & i.longitude columns on Item
 if ($userLat !== null && $userLng !== null) {
@@ -64,6 +89,7 @@ if ($userLat !== null && $userLng !== null) {
         )
     ) <= {$userDist}";
 }
+<<<<<<< HEAD
 
 /* ── ORDER BY ── */
 switch ($sort) {
@@ -71,6 +97,9 @@ switch ($sort) {
     case 'price_desc': $order = 'i.price DESC';      break;
     default:           $order = 'i.created_at DESC'; break;
 }
+=======
+$whereSql = implode(' AND ', $where);
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
 
 /* ── Pagination ── */
 $whereSql    = implode(' AND ', $where);
@@ -80,6 +109,7 @@ $totalPages  = max(1, (int)ceil($total / $limit));
 $page        = min($page, $totalPages);
 $offset      = ($page - 1) * $limit;
 
+<<<<<<< HEAD
 /* ── Main query ── */
 $sql = "SELECT i.*, c.category_name, im.images AS image
         FROM Item i
@@ -89,6 +119,11 @@ $sql = "SELECT i.*, c.category_name, im.images AS image
             FROM Image
             WHERE imageID IN (SELECT MIN(imageID) FROM Image GROUP BY itemID)
         ) im ON im.itemID = i.itemID
+=======
+$sql = "SELECT i.*, c.category_name, (SELECT images FROM Image im WHERE im.itemID = i.itemID ORDER BY im.imageID LIMIT 1) AS image
+        FROM Item i
+        LEFT JOIN Category c ON c.categoryID = i.categoryID
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
         WHERE {$whereSql}
         ORDER BY {$order}
         LIMIT {$limit} OFFSET {$offset}";
@@ -102,6 +137,7 @@ require_once __DIR__ . '/../includes/header.php';
 /* ── URL helper ── */
 function buildQuery(array $overrides = []): string {
     $params = array_filter([
+<<<<<<< HEAD
         'q'         => ($overrides['q']        ?? $_GET['q']        ?? ''),
         'category'  => ($overrides['category'] ?? $_GET['category'] ?? ''),
         'sort'      => ($overrides['sort']      ?? $_GET['sort']     ?? ''),
@@ -114,6 +150,19 @@ function buildQuery(array $overrides = []): string {
         'lng'       => ($overrides['lng']       ?? $_GET['lng']      ?? ''),
         'distance'  => ($overrides['distance']  ?? $_GET['distance'] ?? ''),
     ], fn($v) => $v !== '' && $v !== null && $v !== []);
+=======
+        'q' => ($overrides['q'] ?? $_GET['q'] ?? ''),
+        'category' => ($overrides['category'] ?? $_GET['category'] ?? ''),
+        'sort' => ($overrides['sort'] ?? $_GET['sort'] ?? ''),
+    'page' => ($overrides['page'] ?? $_GET['page'] ?? ''),
+    'tags' => ($overrides['tags'] ?? $_GET['tags'] ?? ''),
+    'min_price' => ($overrides['min_price'] ?? $_GET['min_price'] ?? ''),
+    'max_price' => ($overrides['max_price'] ?? $_GET['max_price'] ?? ''),
+    'has_image' => ($overrides['has_image'] ?? $_GET['has_image'] ?? ''),
+    ], function ($value) {
+        return $value !== '' && $value !== null;
+    });
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
     return http_build_query($params);
 }
 ?>
@@ -226,13 +275,18 @@ function buildQuery(array $overrides = []): string {
 <!-- ════════════════════════════ PAGE LAYOUT ════════════════════════════ -->
 <div class="container">
   <div class="section" style="max-width:1200px;margin:0 auto;display:flex;gap:24px">
+<<<<<<< HEAD
 
     <!-- ─── Filters sidebar ─── -->
+=======
+    <!-- Filters sidebar -->
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
     <aside style="width:260px">
       <div class="page-card">
         <h3 class="page-card-title">Filters</h3>
 
         <form id="filtersForm" action="search.php" method="GET">
+<<<<<<< HEAD
 
           <!-- Preserves sort when form submits -->
           <input type="hidden" name="sort"     id="sortHidden" value="<?= h($sort) ?>" />
@@ -242,20 +296,29 @@ function buildQuery(array $overrides = []): string {
           <input type="hidden" name="distance" id="distInput"  value="<?= h($_GET['distance'] ?? '') ?>" />
 
           <!-- Keyword -->
+=======
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
           <div style="margin-bottom:12px">
             <label class="form-label">Keyword</label>
             <input type="text" name="q" class="form-control"
                    value="<?= h($search) ?>" placeholder="Search listings…" />
           </div>
+<<<<<<< HEAD
 
           <!-- Category -->
+=======
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
           <div style="margin-bottom:12px">
             <label class="form-label">Category</label>
             <select name="category" class="form-control">
               <option value="0">All categories</option>
               <?php foreach ($categories as $cat): ?>
+<<<<<<< HEAD
                 <option value="<?= h($cat['categoryID']) ?>"
                   <?= $category === (int)$cat['categoryID'] ? 'selected' : '' ?>>
+=======
+                <option value="<?= h($cat['categoryID']) ?>" <?= $category === (int) $cat['categoryID'] ? 'selected' : '' ?>>
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
                   <?= h($cat['category_name']) ?>
                 </option>
               <?php endforeach; ?>
@@ -267,12 +330,16 @@ function buildQuery(array $overrides = []): string {
             <label class="form-label">Tags</label>
             <div style="max-height:160px;overflow:auto;padding-right:6px">
               <?php foreach ($tags as $t): ?>
+<<<<<<< HEAD
                 <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                   <input type="checkbox" name="tags[]"
                          value="<?= h($t['tagID']) ?>"
                          <?= in_array((int)$t['tagID'], $selectedTags) ? 'checked' : '' ?> />
                   <?= h($t['name']) ?>
                 </label>
+=======
+                <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><input type="checkbox" name="tags[]" value="<?= h($t['tagID']) ?>" <?= in_array((int)$t['tagID'],$selectedTags) ? 'checked' : '' ?>/> <?= h($t['name']) ?></label>
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
               <?php endforeach; ?>
             </div>
           </div>
@@ -295,6 +362,7 @@ function buildQuery(array $overrides = []): string {
             </div>
           </div>
 
+<<<<<<< HEAD
           <!-- Has photo -->
           <div style="margin-bottom:14px">
             <label style="display:flex;align-items:center;gap:8px">
@@ -302,6 +370,10 @@ function buildQuery(array $overrides = []): string {
                      <?= $hasImage ? 'checked' : '' ?> />
               Has photo
             </label>
+=======
+          <div style="margin-bottom:12px">
+            <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="has_image" value="1" <?= $hasImage ? 'checked' : '' ?>/> Has photo</label>
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
           </div>
 
           <!-- ── Location picker ── -->
@@ -352,7 +424,6 @@ function buildQuery(array $overrides = []): string {
             <button class="btn-accent" type="submit">Apply</button>
             <a class="btn-ghost" href="search.php">Clear</a>
           </div>
-
         </form>
       </div>
     </aside>
@@ -360,6 +431,7 @@ function buildQuery(array $overrides = []): string {
     <!-- ─── Results ─── -->
     <div style="flex:1">
       <div class="search-results-inner">
+<<<<<<< HEAD
         <div class="section-header"
              style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div>
@@ -383,9 +455,25 @@ function buildQuery(array $overrides = []): string {
               <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price ↓</option>
             </select>
           </div>
+=======
+      <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <h1 class="section-title">Browse listings</h1>
+          <p class="section-count"><?= number_format($total) ?> item<?= $total === 1 ? '' : 's' ?> found</p>
+        </div>
+        <div>
+          <label class="form-label">Sort</label>
+          <select id="sortSelect" name="sort" form="filtersForm" class="form-control" style="min-width:160px">
+            <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest</option>
+            <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>Price ↑</option>
+            <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price ↓</option>
+          </select>
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
         </div>
       </div>
+      </div>
 
+<<<<<<< HEAD
       <?php if (empty($items)): ?>
         <div class="search-results-inner">
           <div class="empty" style="padding:40px;text-align:center;width:100%">
@@ -419,12 +507,43 @@ function buildQuery(array $overrides = []): string {
                   <?= h($item['category_name'] ?? 'Uncategorized') ?>
                   <?= $item['address'] ? '&middot; ' . h($item['address']) : '' ?>
                 </div>
+=======
+    <?php if (empty($items)): ?>
+      <div class="search-results-inner">
+      <div class="empty" style="padding:40px;text-align:center;width:100%">
+        <div class="empty-icon">🔍</div>
+        <h3>No listings match your search.</h3>
+        <p>Try a different keyword or category.</p>
+      </div>
+      </div>
+    <?php else: ?>
+      <div class="grid-4">
+        <?php foreach ($items as $item): ?>
+          <a class="card item-card" href="../templates/item.html?id=<?= h($item['itemID']) ?>">
+            <?php if (!empty($item['image'])): ?>
+              <div class="item-card-img-wrap">
+                <img class="item-card-img" src="../uploads/<?= h($item['image']) ?>" alt="<?= h($item['title']) ?>" loading="lazy" />
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
               </div>
-            </a>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
+            <?php else: ?>
+              <div class="item-card-img-wrap">
+                <div class="item-card-img" style="display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--surface2)">📦</div>
+              </div>
+            <?php endif; ?>
+            <div style="padding:16px">
+              <p class="item-card-title"><?= h($item['title']) ?></p>
+              <p class="item-card-price"><?= formatPrice((float) $item['price']) ?></p>
+              <div class="item-card-meta">
+                <?= h($item['category_name'] ?? 'Uncategorized') ?>
+                <?= $item['address'] ? '&middot; ' . h($item['address']) : '' ?>
+              </div>
+            </div>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
 
+<<<<<<< HEAD
       <!-- Pagination -->
       <?php if ($totalPages > 1): ?>
         <div class="pagination" style="justify-content:center;margin-top:28px">
@@ -610,3 +729,24 @@ function buildQuery(array $overrides = []): string {
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
+=======
+    <?php if ($totalPages > 1): ?>
+      <div class="pagination" style="justify-content:center;margin-top:28px">
+        <?php if ($page > 1): ?>
+          <a class="pagination-link" href="search.php?<?= buildQuery(['page' => $page - 1]) ?>">‹ Previous</a>
+        <?php endif; ?>
+
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+          <a class="pagination-link<?= $i === $page ? ' active' : '' ?>" href="search.php?<?= buildQuery(['page' => $i]) ?>"><?= $i ?></a>
+        <?php endfor; ?>
+
+        <?php if ($page < $totalPages): ?>
+          <a class="pagination-link" href="search.php?<?= buildQuery(['page' => $page + 1]) ?>">Next ›</a>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d

@@ -39,7 +39,12 @@ CREATE TABLE IF NOT EXISTS Item (
   title       VARCHAR(255)   NOT NULL,
   price       DECIMAL(12, 2) NOT NULL,
   description TEXT,
+<<<<<<< HEAD
   status      ENUM('available', 'sold', 'archived') NOT NULL DEFAULT 'available',
+=======
+  address     VARCHAR(255),
+  status      ENUM('available', 'pending', 'sold', 'archived') NOT NULL DEFAULT 'available',
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
   created_at  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sellerID)   REFERENCES Users(userID)        ON DELETE CASCADE,
   FOREIGN KEY (categoryID) REFERENCES Category(categoryID)
@@ -145,6 +150,7 @@ CREATE TABLE IF NOT EXISTS Messages (
   FOREIGN KEY (conversationID) REFERENCES Conversation(conversationID) ON DELETE CASCADE,
   FOREIGN KEY (senderID)       REFERENCES Users(userID) ON DELETE CASCADE,
   FOREIGN KEY (receiverID)     REFERENCES Users(userID) ON DELETE CASCADE
+<<<<<<< HEAD
 ) ENGINE=InnoDB;
 
 -- ── Views ─────────────────────────────────────────────────────────
@@ -198,3 +204,6 @@ GROUP BY
     u.email,
     c.categoryID,
     c.category_name;
+=======
+) ENGINE=InnoDB;
+>>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
