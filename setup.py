@@ -2,21 +2,15 @@
 import os, sys, subprocess, json
 from typing import Callable, Any
 
-packages = {
-    "mysql-connector-python": "mysql.connector",
-    "bcrypt": "bcrypt"
-}
-
-for package, module in packages.items():
-    try:
-        __import__(module)
-    except ImportError:
-        print(f"Package {package} not found, Installing {package}.....")
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
-
-import mysql.connector
-import bcrypt
-from mysql.connector.abstracts import MySQLCursorAbstract
+package = "mysql-connector-python"
+try:
+    import mysql.connector
+except ImportError:
+    print(f"Package {package} not found, Installing {package}.....")
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+finally:
+    import mysql.connector
+    from mysql.connector.abstracts import MySQLCursorAbstract
 
 
 def generate_insert_sql(columns: list[str], table: str) -> str:
@@ -37,13 +31,9 @@ def error_handling_sql(func: Callable[..., Any]) -> Callable[..., Any]:
 
     return wrapper
 
-def hash_password(password: str) -> str:
-    # php uses cost of 10 on default python uses 12
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=10)).decode('utf-8')
 
-@DeprecationWarning
 @error_handling_sql
-def hash_password_mysql(cursor: MySQLCursorAbstract, password: str):
+def hash_password(cursor: MySQLCursorAbstract, password: str):
     cursor.execute(f"SELECT PASSWORD('{password}')")
 
     return cursor.fetchone()[0]
@@ -199,20 +189,11 @@ def init():
     mysql_dict_cursor = mysql_connection.cursor(dictionary=True)
 
     # hash the passwords
-    
-    print("Hashing dummy passwords....")
-
     if is_table_exists(mysql_cursor, db_name, "Users"):
-        # users_with_hash = [ 
-        #     ( entry["userID"], hash_password(entry["password"]) )
-        #     for entry in get_all_users(mysql_dict_cursor) 
-        # ]
-        users_with_hash = []
-
-        for entry in get_all_users(mysql_dict_cursor):
-            hashed_password = hash_password(entry["password"])
-            users_with_hash.append( (entry["userID"], hashed_password) )
-            print(f" {entry["password"]} --> {hashed_password}")
+        users_with_hash = [ 
+            ( entry["userID"], hash_password(mysql_cursor, entry["password"]) )
+            for entry in get_all_users(mysql_dict_cursor) 
+        ]
 
         for pk, hashed_password in users_with_hash:
             update_user_password(mysql_cursor, pk, hashed_password)

@@ -43,11 +43,11 @@
         "table": "Item",
         "columns": ["itemID", "sellerID", "categoryID", "title", "price", "description", "address", "status"],
         "values": [
-            [1, 2, 2, "Samsung Galaxy A54", 12500.00, "Slightly used, no scratches, comes with original box and charger.", "Cavite, Indang", "available"],
-            [2, 2, 5, "Wooden Study Desk", 3200.00, "Solid wood study desk, 4 feet wide. Minor scuffs on the side.", "Cavite, Indang", "available"],
+            [1, 2, 2, "Samsung Galaxy A54", 12500.00, "Slightly used, no scratches, comes with original box and charger.", "Cavite, Indang", "active"],
+            [2, 2, 5, "Wooden Study Desk", 3200.00, "Solid wood study desk, 4 feet wide. Minor scuffs on the side.", "Cavite, Indang", "active"],
             [3, 2, 3, "Levi's 501 Jeans - Size 32", 850.00, "Authentic Levi's, worn twice only. Great condition.", "Cavite, Indang", "sold"],
-            [4, 6, 1, "Honda Beat 2021", 58000.00, "Well-maintained, complete documents, low mileage.", "Cavite, Trece Martires", "available"],
-            [5, 6, 4, "Badminton Racket Set", 1100.00, "Set of 2 rackets with shuttlecocks and carry bag.", "Cavite, Trece Martires", "available"],
+            [4, 6, 1, "Honda Beat 2021", 58000.00, "Well-maintained, complete documents, low mileage.", "Cavite, Trece Martires", "active"],
+            [5, 6, 4, "Badminton Racket Set", 1100.00, "Set of 2 rackets with shuttlecocks and carry bag.", "Cavite, Trece Martires", "active"],
             [6, 6, 6, "Harry Potter Complete Book Series", 2200.00, "All 7 books, hardcover, excellent condition.", "Cavite, Trece Martires", "archived"]
         ]
     },
@@ -73,14 +73,15 @@
         "table": "Image",
         "columns": ["imageID", "itemID", "images"],
         "values": [
-            [1, 1, "uploads/items/1/galaxy_a54_front.jpg"],
-            [2, 1, "uploads/items/1/galaxy_a54_back.jpg"],
-            [3, 2, "uploads/items/2/wooden_desk_side.jpg"],
-            [5, 3, "uploads/items/3/levis_jeans_front.jpg"],
-            [6, 4, "uploads/items/4/honda_beat_side.jpg"],
-            [7, 4, "uploads/items/4/honda_beat_front.jpg"],
-            [8, 5, "uploads/items/5/badminton_set.jpg"],
-            [9, 6, "uploads/items/6/hp_books_full.jpg"]
+            [1, 1, "uploads/items/galaxy_a54_front.jpg"],
+            [2, 1, "uploads/items/galaxy_a54_back.jpg"],
+            [3, 2, "uploads/items/wooden_desk_full.jpg"],
+            [4, 2, "uploads/items/wooden_desk_side.jpg"],
+            [5, 3, "uploads/items/levis_jeans_front.jpg"],
+            [6, 4, "uploads/items/honda_beat_side.jpg"],
+            [7, 4, "uploads/items/honda_beat_front.jpg"],
+            [8, 5, "uploads/items/badminton_set.jpg"],
+            [9, 6, "uploads/items/hp_books_full.jpg"]
         ]
     },
     {

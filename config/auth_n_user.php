@@ -25,7 +25,7 @@ function registerUser(
     string $contact = ''
 ): array {
     $db   = getDB();
-    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $hash = password_hash($password, PASSWORD_BCRYPT);
 
     $stmt = $db->prepare(
         "INSERT INTO Users (email, username, password, role, address, contact_number)

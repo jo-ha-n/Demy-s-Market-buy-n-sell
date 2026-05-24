@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS Item (
   price       DECIMAL(12, 2) NOT NULL,
   description TEXT,
   address     VARCHAR(255),
-  status      ENUM('available', 'sold', 'archived') NOT NULL DEFAULT 'available',
+  status      ENUM('available', 'pending', 'sold', 'archived') NOT NULL DEFAULT 'available',
   created_at  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sellerID)   REFERENCES Users(userID)        ON DELETE CASCADE,
   FOREIGN KEY (categoryID) REFERENCES Category(categoryID)
@@ -147,57 +147,3 @@ CREATE TABLE IF NOT EXISTS Messages (
   FOREIGN KEY (senderID)       REFERENCES Users(userID) ON DELETE CASCADE,
   FOREIGN KEY (receiverID)     REFERENCES Users(userID) ON DELETE CASCADE
 ) ENGINE=InnoDB;
-
--- ── Views ─────────────────────────────────────────────────────────
-
-CREATE OR REPLACE VIEW vw_items AS
-SELECT
-    i.itemID,
-    i.title,
-    i.price,
-    i.description,
-    i.address,
-    i.status,
-    i.created_at,
-
-    -- Seller info
-    i.sellerID,
-    u.username      AS seller_username,
-    u.email         AS seller_email,
-
-    -- Category
-    c.categoryID,
-    c.category_name,
-
-    -- Tags aggregated into a comma-separated string
-    GROUP_CONCAT(
-        t.name
-        ORDER BY t.name ASC
-        SEPARATOR ', '
-    )               AS tags,
-
-    -- Tag IDs if you need them for filtering/joining
-    GROUP_CONCAT(
-        t.tagID
-        ORDER BY t.name ASC
-        SEPARATOR ','
-    )               AS tag_ids
-
-FROM Item i
-JOIN Users    u  ON u.userID    = i.sellerID
-JOIN Category c  ON c.categoryID = i.categoryID
-LEFT JOIN Item_Tag it ON it.itemID = i.itemID
-LEFT JOIN Tag      t  ON t.tagID   = it.tagID
-GROUP BY
-    i.itemID,
-    i.title,
-    i.price,
-    i.description,
-    i.address,
-    i.status,
-    i.created_at,
-    i.sellerID,
-    u.username,
-    u.email,
-    c.categoryID,
-    c.category_name;
