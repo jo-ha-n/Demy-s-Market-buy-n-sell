@@ -196,11 +196,8 @@ def init():
     mysql_dict_cursor = mysql_connection.cursor(dictionary=True)
 
     # hash the passwords
-<<<<<<< HEAD
     print("Hashing dummy passwords....")
 
-=======
->>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
     if is_table_exists(mysql_cursor, db_name, "Users"):
         users_with_hash = [ 
             ( entry["userID"], hash_password(mysql_cursor, entry["password"]) )

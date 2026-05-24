@@ -150,7 +150,6 @@ CREATE TABLE IF NOT EXISTS Messages (
   FOREIGN KEY (conversationID) REFERENCES Conversation(conversationID) ON DELETE CASCADE,
   FOREIGN KEY (senderID)       REFERENCES Users(userID) ON DELETE CASCADE,
   FOREIGN KEY (receiverID)     REFERENCES Users(userID) ON DELETE CASCADE
-<<<<<<< HEAD
 ) ENGINE=InnoDB;
 
 -- ── Views ─────────────────────────────────────────────────────────
@@ -204,6 +203,3 @@ GROUP BY
     u.email,
     c.categoryID,
     c.category_name;
-=======
-) ENGINE=InnoDB;
->>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
