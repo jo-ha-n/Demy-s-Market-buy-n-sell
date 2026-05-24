@@ -19,11 +19,12 @@ import bcrypt
 from mysql.connector.abstracts import MySQLCursorAbstract
 
 
-def generate_insert_sql(columns: list[str], table: str) -> str:
-    placeholder = str.join(", ", (["%s"] * len(columns)))
-    columns = str.join(", ", columns)
+@DeprecationWarning
+def generate_insert_sql(columns: list[str], values: list[str], table: str) -> str:
+    combined_values = str.join(", ", values)
+    combined_columns = str.join(", ", columns)
 
-    return f"""INSERT INTO {table}({columns}) VALUES ({placeholder})"""
+    return f"""INSERT INTO {table}({combined_columns}) VALUES ({combined_values})"""
 
 
 def error_handling_sql(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -101,29 +102,35 @@ def is_table_exists(cursor: MySQLCursorAbstract, table_db: str, table_name: str)
 
 
 @error_handling_sql
-def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]) -> None:
+def insert_all_values(cursor: MySQLCursorAbstract, columns: list[str], values: list[list[str]], table_name: str) -> None:
+    for row in values:
+        placeholders = []
+        safe_row = []
+
+        for val in row:
+            if isinstance(val, str) and val.startswith("ST_"):
+                placeholders.append(val)   # inject as raw SQL
+            else:
+                placeholders.append("%s")
+                safe_row.append(val)
+
+        sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+        cursor.execute(sql, safe_row)
+
+
+@error_handling_sql
+def insert_data_from_json(cursor: MySQLCursorAbstract, path: os.PathLike[str]):
     with open(path, 'r', encoding="utf-8") as file:
         data = json.load(file)
 
-    if not isinstance(data, list):
-        print(f"ERROR: Expected a list of objects in {path}, got {type(data).__name__} instead")
-        return
-
-    print(f"{len(data)} tables found! Inserting Values")
-
     for tables in data:
-        try:
-            columns = tables["columns"]
-            values = tables["values"]
-            table_name = tables["table"]
+        columns = tables["columns"]
+        values  = tables["values"]
+        table_name = tables["table"]
 
-            print(f" - Adding values in table {table_name}")
+        print(f" - Adding values in table {table_name}")
 
-        except KeyError as e:
-            print(f"ERROR: Missing key {e} in {path}")
-            return
-
-        cursor.executemany(generate_insert_sql(columns, table_name), values)
+        insert_all_values(cursor, columns, values, table_name)
 
     cursor._connection.commit()
 
@@ -199,7 +206,6 @@ def init():
     mysql_dict_cursor = mysql_connection.cursor(dictionary=True)
 
     # hash the passwords
-    
     print("Hashing dummy passwords....")
 
     if is_table_exists(mysql_cursor, db_name, "Users"):

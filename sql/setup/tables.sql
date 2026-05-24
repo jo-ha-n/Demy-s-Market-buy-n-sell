@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS Users (
   username       VARCHAR(80)  NOT NULL UNIQUE,
   password       VARCHAR(255) NOT NULL,
   date_joined    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  address        TEXT,
+  coordinates    POINT DEFAULT NULL, -- Admins does not need coordinates
   contact_number VARCHAR(20),
   role           ENUM('user', 'admin') NOT NULL DEFAULT 'user'
 ) ENGINE=InnoDB;
@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS Item (
   title       VARCHAR(255)   NOT NULL,
   price       DECIMAL(12, 2) NOT NULL,
   description TEXT,
-  address     VARCHAR(255),
   status      ENUM('available', 'sold', 'archived') NOT NULL DEFAULT 'available',
   created_at  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sellerID)   REFERENCES Users(userID)        ON DELETE CASCADE,
@@ -156,7 +155,6 @@ SELECT
     i.title,
     i.price,
     i.description,
-    i.address,
     i.status,
     i.created_at,
 
@@ -193,7 +191,6 @@ GROUP BY
     i.title,
     i.price,
     i.description,
-    i.address,
     i.status,
     i.created_at,
     i.sellerID,

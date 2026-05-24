@@ -29,27 +29,27 @@
     },
     {
         "table": "Users",
-        "columns": ["userID", "email", "username", "password", "address", "contact_number", "role"],
+        "columns": ["userID", "email", "username", "password", "coordinates", "contact_number", "role"],
         "values": [
-            [1, "demy@email.com", "demy", "demy_password", "Cavite, Sa gilid", "09554328927", "buyer"],
-            [2, "lawrence@email.com", "lawrence", "lawrence_password", "Cavite, Indang", "09999990001", "seller"],
-            [3, "james@email.com", "james", "james_password", "Cavite, Dasmarinas", "09999990002", "buyer"],
-            [4, "vince@email.com", "vince", "vince_password", "Cavite, Imus", "09999990003", "buyer"],
-            [5, "admin@email.com", "admin", "admin_password", "Cavite, Bacoor", "09999990004", "admin"],
-            [6, "mara@email.com", "mara", "mara_password", "Cavite, Trece Martires", "09999990005", "seller"]
+            [1, "demy@email.com", "demy", "demy_password", "ST_GeomFromText('POINT(48.8584 2.2945)', 3857)", "09554328927", "user"],
+            [2, "lawrence@email.com", "lawrence", "lawrence_password", "ST_GeomFromText('POINT(14.19528 120.87694)', 3857)", "09999990002", "user"],
+            [3, "james@email.com", "james", "james_password", "ST_GeomFromText('POINT(14.32944 120.93667)', 3857)", "09999990002", "user"],
+            [4, "vince@email.com", "vince", "vince_password", "ST_GeomFromText('POINT(14.42972 120.93667)', 3857)", "09999990003", "user"],
+            [5, "admin@email.com", "admin", "admin_password", "ST_GeomFromText('POINT(14.45896 120.93851)', 3857)", "09999990004", "admin"],
+            [6, "mara@email.com", "mara", "mara_password", "ST_GeomFromText('POINT(14.2833322 120.8499966)', 3857)", "09999990005", "user"]
         ]
     },
     {
         "table": "Item",
-        "columns": ["itemID", "sellerID", "categoryID", "title", "price", "description", "address", "status"],
+        "columns": ["itemID", "sellerID", "categoryID", "title", "price", "description", "status"],
         "values": [
-            [1, 2, 2, "Samsung Galaxy A54", 12500.00, "Slightly used, no scratches, comes with original box and charger.", "Cavite, Indang", "available"],
-            [2, 2, 5, "Wooden Study Desk", 3200.00, "Solid wood study desk, 4 feet wide. Minor scuffs on the side.", "Cavite, Indang", "available"],
-            [3, 2, 3, "Levi's 501 Jeans - Size 32", 850.00, "Authentic Levi's, worn twice only. Great condition.", "Cavite, Indang", "sold"],
-            [4, 6, 1, "Honda Beat 2021", 58000.00, "Well-maintained, complete documents, low mileage.", "Cavite, Trece Martires", "available"],
-            [5, 6, 4, "Badminton Racket Set", 1100.00, "Set of 2 rackets with shuttlecocks and carry bag.", "Cavite, Trece Martires", "available"],
-            [6, 6, 6, "Harry Potter Complete Book Series", 2200.00, "All 7 books, hardcover, excellent condition.", "Cavite, Trece Martires", "archived"],
-            [7, 6, 6, "Learn Python Programming: A comprehensive, up-to-date, and definitive guide", 5000, "Barely Used", "Cavite, Trece Martires", "available"]
+            [1, 2, 2, "Samsung Galaxy A54", 12500.00, "Slightly used, no scratches, comes with original box and charger.", "available"],
+            [2, 2, 5, "Wooden Study Desk", 3200.00, "Solid wood study desk, 4 feet wide. Minor scuffs on the side.", "available"],
+            [3, 2, 3, "Levi's 501 Jeans - Size 32", 850.00, "Authentic Levi's, worn twice only. Great condition.", "sold"],
+            [4, 6, 1, "Honda Beat 2021", 58000.00, "Well-maintained, complete documents, low mileage.", "available"],
+            [5, 6, 4, "Badminton Racket Set", 1100.00, "Set of 2 rackets with shuttlecocks and carry bag.", "available"],
+            [6, 6, 6, "Harry Potter Complete Book Series", 2200.00, "All 7 books, hardcover, excellent condition.", "archived"],
+            [7, 6, 6, "Learn Python Programming: A comprehensive, up-to-date, and definitive guide", 5000, "Barely Used", "available"]
         ]
     },
     {
