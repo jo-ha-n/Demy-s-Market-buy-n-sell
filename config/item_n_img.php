@@ -105,12 +105,12 @@ function getItem(int $itemID): ?array {
                 c.category_name,
                 ROUND(AVG(r.rating), 1) AS avg_rating,
                 COUNT(r.reviewID)       AS review_count
-         FROM Item i
-         JOIN Users    u ON u.userID     = i.sellerID
-         JOIN Category c ON c.categoryID = i.categoryID
-         LEFT JOIN Reviews r ON r.itemID = i.itemID
-         WHERE i.itemID = ?
-         GROUP BY i.itemID"
+        FROM Item i
+        JOIN Users    u ON u.userID     = i.sellerID
+        JOIN Category c ON c.categoryID = i.categoryID
+        LEFT JOIN Reviews r ON r.itemID = i.itemID
+        WHERE i.itemID = ?
+        GROUP BY i.itemID"
     );
     $stmt->bind_param('i', $itemID);
     $stmt->execute();

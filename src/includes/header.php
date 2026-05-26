@@ -36,7 +36,7 @@ $hideHeader = $hideHeader ?? false;
 <?php if (!$hideHeader): ?>
 <!--TOPBAR-->
 <header class="topbar" id="topbar">
-  <a href="/demys/index.php" class="topbar-logo">Demy's</a>
+  <a href="../index.html" class="topbar-logo">Demy's</a>
 
   <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'search.php'): ?>
   <form class="topbar-search" action="/GitHub/Demy-s-Market-buy-n-sell/src/pages/search.php" method="GET">

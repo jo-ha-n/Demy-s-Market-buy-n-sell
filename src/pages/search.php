@@ -34,7 +34,11 @@ $where = ["i.status = 'available'"];
 
 if ($search !== '') {
     $s       = $db->real_escape_string($search);
-    $where[] = "(i.title LIKE '%{$s}%' OR i.description LIKE '%{$s}%')";
+    $where[] = "(
+      i.title LIKE '%{$s}%' OR i.description LIKE '%{$s}%'
+      OR i.description LIKE '%{$s}%'
+      OR i.address LIKE '%{$s}%'
+      )";
 }
 if ($category > 0) {
     $where[] = 'i.categoryID = ' . $category;
@@ -74,7 +78,12 @@ switch ($sort) {
 
 /* ── Pagination ── */
 $whereSql    = implode(' AND ', $where);
-$countResult = $db->query("SELECT COUNT(*) AS total FROM Item i WHERE {$whereSql}");
+$countResult = $db->query("
+    SELECT COUNT(*) AS total
+    FROM Item i
+    LEFT JOIN Users u ON u.userID = i.sellerID
+    WHERE {$whereSql}
+");
 $total       = $countResult ? (int)$countResult->fetch_assoc()['total'] : 0;
 $totalPages  = max(1, (int)ceil($total / $limit));
 $page        = min($page, $totalPages);
@@ -83,6 +92,7 @@ $offset      = ($page - 1) * $limit;
 /* ── Main query ── */
 $sql = "SELECT i.*, c.category_name, im.images AS image
         FROM Item i
+        LEFT JOIN Users u ON u.userID = i.sellerID
         LEFT JOIN Category c ON c.categoryID = i.categoryID
         LEFT JOIN (
             SELECT itemID, images
@@ -120,7 +130,7 @@ function buildQuery(array $overrides = []): string {
 
 <!-- ═══════════════════════════ LEAFLET CDN ═══════════════════════════ -->
 <link  rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLs=" crossorigin=""></script>
 
@@ -245,7 +255,7 @@ function buildQuery(array $overrides = []): string {
           <div style="margin-bottom:12px">
             <label class="form-label">Keyword</label>
             <input type="text" name="q" class="form-control"
-                   value="<?= h($search) ?>" placeholder="Search listings…" />
+                    value="<?= h($search) ?>" placeholder="Search listings…" />
           </div>
 
           <!-- Category -->
@@ -269,8 +279,8 @@ function buildQuery(array $overrides = []): string {
               <?php foreach ($tags as $t): ?>
                 <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                   <input type="checkbox" name="tags[]"
-                         value="<?= h($t['tagID']) ?>"
-                         <?= in_array((int)$t['tagID'], $selectedTags) ? 'checked' : '' ?> />
+                          value="<?= h($t['tagID']) ?>"
+                          <?= in_array((int)$t['tagID'], $selectedTags) ? 'checked' : '' ?> />
                   <?= h($t['name']) ?>
                 </label>
               <?php endforeach; ?>
@@ -282,13 +292,13 @@ function buildQuery(array $overrides = []): string {
             <label class="form-label">Price range</label>
             <div style="display:flex;gap:8px">
               <input type="number" name="min_price" class="form-control"
-                     placeholder="Min" step="0.01"
-                     value="<?= h($minPrice ?? '') ?>"
-                     min="<?= h($globalMin) ?>" />
+                      placeholder="Min" step="0.01"
+                      value="<?= h($minPrice ?? '') ?>"
+                      min="<?= h($globalMin) ?>" />
               <input type="number" name="max_price" class="form-control"
-                     placeholder="Max" step="0.01"
-                     value="<?= h($maxPrice ?? '') ?>"
-                     max="<?= h($globalMax) ?>" />
+                      placeholder="Max" step="0.01"
+                      value="<?= h($maxPrice ?? '') ?>"
+                      max="<?= h($globalMax) ?>" />
             </div>
             <div style="font-size:12px;color:var(--muted);margin-top:6px">
               Range: <?= formatPrice($globalMin) ?> — <?= formatPrice($globalMax) ?>
@@ -299,7 +309,7 @@ function buildQuery(array $overrides = []): string {
           <div style="margin-bottom:14px">
             <label style="display:flex;align-items:center;gap:8px">
               <input type="checkbox" name="has_image" value="1"
-                     <?= $hasImage ? 'checked' : '' ?> />
+                      <?= $hasImage ? 'checked' : '' ?> />
               Has photo
             </label>
           </div>
@@ -312,7 +322,7 @@ function buildQuery(array $overrides = []): string {
                     class="loc-picker-btn <?= ($userLat !== null) ? 'is-set' : '' ?>"
                     onclick="openLocationMap()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="10" r="3"/>
                 <path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 13-8 13S4 15.25 4 10a8 8 0 0 1 8-8z"/>
               </svg>
@@ -323,7 +333,7 @@ function buildQuery(array $overrides = []): string {
 
             <div class="loc-pill <?= ($userLat !== null) ? 'visible' : '' ?>" id="locPill">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                 <circle cx="12" cy="10" r="3"/>
                 <path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 13-8 13S4 15.25 4 10a8 8 0 0 1 8-8z"/>
               </svg>
@@ -340,9 +350,9 @@ function buildQuery(array $overrides = []): string {
             <label class="form-label">Distance</label>
             <div class="dist-range-row">
               <input type="range" id="distSlider"
-                     min="1" max="100" step="1"
-                     value="<?= h($userDist) ?>"
-                     oninput="syncDist(this.value)" />
+                      min="1" max="100" step="1"
+                      value="<?= h($userDist) ?>"
+                      oninput="syncDist(this.value)" />
               <span class="dist-val" id="distLabel"><?= h($userDist) ?> km</span>
             </div>
           </div>
@@ -361,7 +371,7 @@ function buildQuery(array $overrides = []): string {
     <div style="flex:1">
       <div class="search-results-inner">
         <div class="section-header"
-             style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              tyle="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div>
             <h1 class="section-title">Browse listings</h1>
             <p class="section-count">
@@ -401,14 +411,14 @@ function buildQuery(array $overrides = []): string {
               <?php if (!empty($item['image'])): ?>
                 <div class="item-card-img-wrap">
                   <img class="item-card-img"
-                       src="<?= BASE_URL ?>/<?= h($item['image']) ?>"
-                       alt="<?= h($item['title']) ?>"
-                       loading="lazy" />
+                        src="<?= BASE_URL ?>/<?= h($item['image']) ?>"
+                        alt="<?= h($item['title']) ?>"
+                        loading="lazy" />
                 </div>
               <?php else: ?>
                 <div class="item-card-img-wrap">
                   <div class="item-card-img"
-                       style="display:flex;align-items:center;justify-content:center;
+                        style="display:flex;align-items:center;justify-content:center;
                               font-size:40px;background:var(--surface2)">📦</div>
                 </div>
               <?php endif; ?>
@@ -430,17 +440,17 @@ function buildQuery(array $overrides = []): string {
         <div class="pagination" style="justify-content:center;margin-top:28px">
           <?php if ($page > 1): ?>
             <a class="pagination-link"
-               href="search.php?<?= buildQuery(['page' => $page - 1]) ?>">‹ Previous</a>
+                href="search.php?<?= buildQuery(['page' => $page - 1]) ?>">‹ Previous</a>
           <?php endif; ?>
 
           <?php for ($i = 1; $i <= $totalPages; $i++): ?>
             <a class="pagination-link<?= $i === $page ? ' active' : '' ?>"
-               href="search.php?<?= buildQuery(['page' => $i]) ?>"><?= $i ?></a>
+                href="search.php?<?= buildQuery(['page' => $i]) ?>"><?= $i ?></a>
           <?php endfor; ?>
 
           <?php if ($page < $totalPages): ?>
             <a class="pagination-link"
-               href="search.php?<?= buildQuery(['page' => $page + 1]) ?>">Next ›</a>
+                href="search.php?<?= buildQuery(['page' => $page + 1]) ?>">Next ›</a>
           <?php endif; ?>
         </div>
       <?php endif; ?>
@@ -533,6 +543,7 @@ function buildQuery(array $overrides = []): string {
     document.getElementById('openMapBtn').classList.add('is-set');
     document.getElementById('distanceSection').style.display = 'block';
 
+    document.getElementById('filtersForm').submit();
     closeLocationMap();
   };
 
@@ -542,7 +553,7 @@ function buildQuery(array $overrides = []): string {
     var startLng = _lng !== null ? _lng : DEFAULT_LNG;
 
     _map = L.map('leafletMap', { zoomControl: true })
-             .setView([startLat, startLng], DEFAULT_ZOOM);
+              .setView([startLat, startLng], DEFAULT_ZOOM);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',

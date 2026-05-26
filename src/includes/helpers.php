@@ -1,6 +1,7 @@
 <?php
 // Demy's — Shared Helpers
 require_once dirname(__DIR__, 2) . '/config/database.php';
+define('BASE_URL', str_replace($_SERVER['DOCUMENT_ROOT'], '', __DIR__ . '/../..'));
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
