@@ -22,7 +22,7 @@ function clearSession() {
 async function fetchAuthCsrf() {
   if (window.authCsrfToken) return window.authCsrfToken;
   try {
-    const res = await fetch('../pages/login.php?ajax=1');
+    const res = await fetch('../src/pages/login.php?ajax=1');
     const data = await res.json();
     window.authCsrfToken = data.csrfToken;
     window.authUser = data.user || null;
@@ -35,7 +35,7 @@ async function fetchAuthCsrf() {
 async function initAuthState() {
   if (getSession()) return;
   try {
-    const res = await fetch('../pages/login.php?ajax=1');
+    const res = await fetch('../src/pages/login.php?ajax=1');
     if (!res.ok) return;
     const data = await res.json();
     if (data.user) {
@@ -235,7 +235,8 @@ function itemCard(item, base = '') {
 // ── Topbar nav injection (HTML pages only) ────────────────────────────────────
 function renderTopbarNav() {
   const nav = document.getElementById('topbarNav');
-  if (!nav || nav.dataset.serverRendered === 'true') return;
+  // If PHP rendered the nav (server-rendered page), leave it alone.
+  if (!nav || nav.dataset.phpRendered === 'true') return;
 
   const session = getSession();
   const path    = window.location.pathname;
@@ -323,5 +324,8 @@ document.getElementById('profileBtn')?.addEventListener('click', e => {
   document.getElementById('profileDropdown')?.classList.toggle('open');
 });
 
-// ── Init nav on HTML pages ────────────────────────────────────────────────────
+// ── Init nav ──────────────────────────────────────────────────────────────────
+// On PHP pages (data-php-rendered="true") the nav is already correct — we just
+// sync localStorage so other JS features (wishlist, itemCard, etc.) still work.
+// On plain HTML pages there is no server session, so JS renders the nav.
 initAuthState().then(renderTopbarNav);

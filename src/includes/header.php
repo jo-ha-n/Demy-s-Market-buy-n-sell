@@ -47,7 +47,7 @@ $hideHeader = $hideHeader ?? false;
   </form>
   <?php endif; ?>
 
-  <nav class="topbar-nav" id="topbarNav" data-server-rendered="true">
+  <nav class="topbar-nav" id="topbarNav" data-php-rendered="true">
     <?php if ($user): ?>
       <a href="/GitHub/Demy-s-Market-buy-n-sell/src/pages/sell.php" class="btn-accent">+ Sell</a>
       <a href="/GitHub/Demy-s-Market-buy-n-sell/src/pages/messages.php" class="topbar-icon" title="Messages">

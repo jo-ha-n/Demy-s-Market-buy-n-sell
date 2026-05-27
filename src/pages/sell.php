@@ -119,7 +119,7 @@ require_once __DIR__ . '/../src/includes/header.php';
 
         <div style="display:flex;gap:12px;margin-top:8px">
           <button type="submit" class="btn-accent btn-lg" style="flex:1">Post Listing</button>
-          <a href="/demys/index.php" class="btn-ghost btn-lg">Cancel</a>
+          <a href="/demys/index.html" class="btn-ghost btn-lg">Cancel</a>
         </div>
       </form>
     </div>

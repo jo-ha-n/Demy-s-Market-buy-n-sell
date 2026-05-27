@@ -11,7 +11,7 @@ if ($ajax === '1' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     ]);
 }
 
-if (isLoggedIn() && $ajax !== '1') { header('Location: ../src/index.html'); exit; }
+if (isLoggedIn() && $ajax !== '1') { header('Location: ../index.html'); exit; }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($ajax === '1') {
             respond(['success' => true, 'message' => "Welcome back, {$row['username']}!", 'user' => $user]);
         }
-        header('Location: ' . ($_GET['next'] ?? '../src/index.html')); exit;
+        header('Location: ' . ($_GET['next'] ?? '../index.html')); exit;
     } else {
         if ($ajax === '1') {
             respond(['success' => false, 'error' => 'Invalid email or password.']);
@@ -225,7 +225,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="login-field">
           <label class="login-label">Username or Email</label>
           <input type="email" name="email" class="login-input" placeholder="you@example.com"
-                 value="<?= h($_POST['email'] ?? '') ?>" required/>
+                  value="<?= h($_POST['email'] ?? '') ?>" required/>
         </div>
         <div class="login-field">
           <label class="login-label">Password</label>

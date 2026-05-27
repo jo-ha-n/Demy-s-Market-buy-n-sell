@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($ajax === '1') {
                 respond(['success' => true, 'message' => "Welcome to Demy's Buy and Sell, {$username}!", 'user' => $user]);
             }
-            header('Location: ../src/index.html?registered=1&user=' . rawurlencode($username)); exit;
+            header('Location: ../index.html?registered=1&user=' . rawurlencode($username)); exit;
         } else {
             $errors[] = $db->errno === 1062 ? 'Email or username already taken.' : 'Registration failed. Try again.';
         }
