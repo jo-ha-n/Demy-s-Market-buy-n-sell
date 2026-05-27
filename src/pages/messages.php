@@ -240,11 +240,17 @@ if ($action) {
 
         // Determine new payment_status
         $newPayStatus = ($tx['buyer_agreement'] === 'agreed') ? 'ready_for_payment' : 'pending';
-
+        
         $upd = $db->prepare("UPDATE Transaction SET seller_agreement = 'agreed', payment_status = ?, updated_at = NOW() WHERE transactionID = ?");
         $upd->bind_param('si', $newPayStatus, $txID);
 
         if ($upd->execute()) {
+            // If both agreed, update the item's price to the negotiated bid price
+            if ($newPayStatus === 'ready_for_payment') {
+                $priceUpd = $db->prepare("UPDATE Item i JOIN Transaction t ON t.itemID = i.itemID SET i.price = t.price WHERE t.transactionID = ?");
+                $priceUpd->bind_param('i', $txID);
+                $priceUpd->execute();
+            }
             echo json_encode(['success' => true, 'payment_status' => $newPayStatus]);
         } else {
             echo json_encode(['success' => false, 'error' => 'Update failed']);
@@ -436,6 +442,14 @@ require_once __DIR__ . '/../includes/header.php';
     transition: background .12s, color .12s;
   }
   .btn-reject:hover { background: #c0392b; color: #fff; }
+
+  .btn-pay {
+    background: #1a9e5c; color: #fff; border: none; border-radius: 6px;
+    padding: 5px 16px; font-size: 12px; font-weight: 700; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center;
+    transition: opacity .15s;
+  }
+  .btn-pay:hover { opacity: .85; }
 
   /* ── Messages ── */
   .chat-messages {
@@ -669,7 +683,10 @@ function renderBidsPanel(bids) {
       actions = `
         <button class="btn-accept" onclick="acceptBid(${b.transactionID})">Accept</button>
         <button class="btn-reject" onclick="rejectBid(${b.transactionID})">Reject</button>`;
-    }
+    } else if (!iAmSeller && b.payment_status === 'ready_for_payment') {
+      actions = `
+    <a class="btn-pay" href="transaction.php?transactionID=${b.transactionID}">Proceed to Payment →</a>`;
+  } 
 
     const card = document.createElement('div');
     card.className = 'bid-card';
