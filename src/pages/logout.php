@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../src/includes/helpers.php';
+require_once __DIR__ . '/../includes/helpers.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -20,7 +20,7 @@ session_destroy();
     } catch (e) {
       // ignore
     }
-    window.location.href = '../src/index.html';
+    window.location.href = '../src/index.html?loggedout=1';
   </script>
   <p>Signing out… If you are not redirected, <a href="../src/index.html">click here</a>.</p>
 </body>

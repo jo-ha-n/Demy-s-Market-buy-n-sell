@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../src/includes/helpers.php';
+require_once __DIR__ . '/../includes/helpers.php';
 requireLogin();
 
 $db      = getDB();
@@ -125,7 +125,7 @@ $totalListings = count($listings);
 $totalReviews  = count($reviews);
 
 $pageTitle = h($profile['username']) . "'s Profile — Demy's";
-require_once __DIR__ . '/../src/includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
@@ -691,4 +691,4 @@ textarea.edit-input { resize:vertical; min-height:80px; }
 
 </div>
 
-<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

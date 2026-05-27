@@ -96,8 +96,8 @@ async function submitAuthForm(event, mode) {
   if (!form) return;
 
   const url = mode === 'login'
-    ? '../pages/login.php?ajax=1'
-    : '../pages/register.php?ajax=1';
+    ? '../src/pages/login.php?ajax=1'
+    : '../src/pages/register.php?ajax=1';
 
   const data = new FormData(form);
   data.append('ajax', '1');
@@ -235,8 +235,7 @@ function itemCard(item, base = '') {
 // ── Topbar nav injection (HTML pages only) ────────────────────────────────────
 function renderTopbarNav() {
   const nav = document.getElementById('topbarNav');
-  // If PHP rendered the nav (server-rendered page), leave it alone.
-  if (!nav || nav.dataset.phpRendered === 'true') return;
+  if (!nav || nav.dataset.serverRendered === 'true') return;
 
   const session = getSession();
   const path    = window.location.pathname;
@@ -313,8 +312,7 @@ function renderTopbarNav() {
 
 function logOut(root = '') {
   clearSession();
-  showFlash('success', 'Signed out.');
-  setTimeout(() => window.location.href = root + 'index.html', 600);
+  window.location.href = root + 'index.html?loggedout=1';
 }
 
 // ── PHP page: profile dropdown bind ──────────────────────────────────────────
@@ -324,8 +322,12 @@ document.getElementById('profileBtn')?.addEventListener('click', e => {
   document.getElementById('profileDropdown')?.classList.toggle('open');
 });
 
-// ── Init nav ──────────────────────────────────────────────────────────────────
-// On PHP pages (data-php-rendered="true") the nav is already correct — we just
-// sync localStorage so other JS features (wishlist, itemCard, etc.) still work.
-// On plain HTML pages there is no server session, so JS renders the nav.
-initAuthState().then(renderTopbarNav);
+// ── Init nav on HTML pages ────────────────────────────────────────────────────
+// If coming from logout, skip initAuthState — the PHP session may still be alive
+// briefly and would re-hydrate localStorage, restoring the logged-in nav incorrectly.
+if (new URLSearchParams(window.location.search).get('loggedout') === '1') {
+  clearSession();
+  renderTopbarNav();
+} else {
+  initAuthState().then(renderTopbarNav);
+}
