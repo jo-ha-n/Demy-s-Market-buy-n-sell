@@ -8,6 +8,18 @@ require_once __DIR__ . '/../includes/helpers.php';  // h(), setFlash(), getFlash
 // ── Resolve item ──────────────────────────────────────────────────────────────
 $itemID = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $item   = $itemID ? getItem($itemID) : null;
+
+// ── Resolve item ──────────────────────────────────────────────────────────────
+$itemID = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$item   = $itemID ? getItem($itemID) : null;
+$csrf   = csrfToken();
+
+// ✅ ADD THESE TWO LINES — getItem() alone doesn't populate images/tags
+if ($item) {
+    $item['images'] = getItemImages($itemID);  // returns array of ['imageID','itemID','images']
+    $item['tags']   = getItemTags($itemID);    // returns array of ['tagID','name']
+}
+
 $csrf = csrfToken();
 
 // Only show available items publicly (admins can see any status)
@@ -298,7 +310,7 @@ require_once __DIR__ . '/../includes/header.php';
               else                               echo '🤝 Offer sent — awaiting seller response.';
             ?>
           </div>
-          <a href="../pages/messages.php?with=<?= $item['sellerID'] ?>&item=<?= $itemID ?>" class="btn-msg">💬 Message Seller</a>
+          <button class="btn-msg" onclick="startConversation(<?= (int)$item['sellerID'] ?>)">💬 Message Seller</button>
 
         <?php else: ?>
           <!-- Normal buyer actions -->
@@ -321,7 +333,7 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
           </form>
           <div class="action-row">
-            <a href="../pages/messages.php?with=<?= $item['sellerID'] ?>&item=<?= $itemID ?>" class="btn-msg">💬 Message Seller</a>
+            <button class="btn-msg" onclick="startConversation(<?= (int)$item['sellerID'] ?>)">💬 Message Seller</button>
             <form method="POST" action="../config/wishlist.php" style="margin:0">
               <input type="hidden" name="itemID"  value="<?= $itemID ?>"/>
               <input type="hidden" name="action"  value="<?= $isWished ? 'remove' : 'add' ?>"/>
@@ -531,6 +543,43 @@ function setRating(n) {
     // You can expand this if Users.coordinates is stored for buyers too
     <?php endif; ?>
   }
+
+  async function startConversation(sellerID) {
+    try {
+      const fd = new FormData();
+      fd.append('otherID', sellerID);
+
+      const res  = await fetch('../api/conversation-init.php', { method: 'POST', body: fd });
+      const data = await res.json();
+
+      if (data.success) {
+        window.location.href = `../pages/messages.php?open=${encodeURIComponent(data.conversationID)}`;
+      } else {
+        alert(data.error || 'Could not open conversation.');
+      }
+    } catch (e) {
+      alert('Network error — please try again.');
+    }
+  }
+  // ── Auto-open conversation from ?open= param ──────────────────────────────────
+  (async function autoOpen() {
+    const params = new URLSearchParams(location.search);
+    const cid    = params.get('open');
+    if (!cid) return;
+
+    // Wait for sidebar to load, then find the conversation
+    await loadSidebar();
+
+    // Fetch conversations to get the other user's info
+    try {
+      const data = await apiFetch('messages.php?action=convos');
+      if (!data.success) return;
+      const match = data.conversations.find(c => c.conversationID === cid);
+      if (match) {
+        openConversation(match.conversationID, match.otherUserID, match.otherUsername);
+      }
+    } catch(e) { console.error(e); }
+  })();
 })();
 </script>
 
