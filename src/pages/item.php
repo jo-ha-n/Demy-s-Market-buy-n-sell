@@ -11,25 +11,19 @@ $itemID = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $item   = $itemID ? getItem($itemID) : null;
 $csrf   = csrfToken();
 
-// ✅ ADD THESE TWO LINES — getItem() alone doesn't populate images/tags
-if ($item) {
-    $item['images'] = getItemImages($itemID);  // returns array of ['imageID','itemID','images']
-    $item['tags']   = getItemTags($itemID);    // returns array of ['tagID','name']
-}
-
-$csrf = csrfToken();
+// ── Project-root URL path (used for DB-stored asset paths) ───────────────────
+// SCRIPT_NAME = "/GitHub/Demy-s-Market-buy-n-sell/src/pages/item.php"
+// Go up 3 segments → "/GitHub/Demy-s-Market-buy-n-sell"
+$_projectRoot = implode('/', array_slice(
+    explode('/', rtrim(str_replace('\\', '/', $_SERVER['SCRIPT_NAME']), '/')),
+    0, -3   // strip /src/pages/item.php
+));
 
 // Only show available items publicly (admins can see any status)
-$currentUserID = currentUser();
-$isAdmin       = false;
-if ($currentUserID) {
-    $db   = getDB();
-    $stmt = $db->prepare("SELECT role FROM Users WHERE userID = ?");
-    $stmt->bind_param('i', $currentUserID);
-    $stmt->execute();
-    $row     = $stmt->get_result()->fetch_assoc();
-    $isAdmin = ($row && $row['role'] === 'admin');
-}
+$currentUserData = currentUser();                          // returns array or null
+$currentUserID   = $currentUserData ? (int) $currentUserData['userID'] : 0;
+$isAdmin         = $currentUserData && ($currentUserData['role'] ?? '') === 'admin';
+$db              = getDB();
 
 $notFound = !$item || ($item['status'] !== 'available' && !$isAdmin);
 
@@ -181,7 +175,15 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="carousel-stage" id="carouselStage">
           <?php if ($images): ?>
             <?php foreach ($images as $idx => $img): ?>
-              <img src="<?= h($img['images']) ?>" alt="<?= h($item['title']) ?> image <?= $idx+1 ?>"
+              <?php
+                $rawSrc = $img['images'];
+                // DB stores project-relative paths like "uploads/items/4/photo.jpg".
+                // BASE_URL = e.g. "/GitHub/Demy-s-Market-buy-n-sell"
+                if (!str_starts_with($rawSrc, 'http')) {
+                    $rawSrc = $_projectRoot . '/' . ltrim($rawSrc, '/');
+                }
+              ?>
+              <img src="<?= h($rawSrc) ?>" alt="<?= h($item['title']) ?> image <?= $idx+1 ?>"
                    style="<?= $idx > 0 ? 'display:none' : '' ?>" data-idx="<?= $idx ?>"/>
             <?php endforeach; ?>
           <?php else: ?>
@@ -430,7 +432,13 @@ require_once __DIR__ . '/../includes/header.php';
       <?php foreach ($moreItems as $mi): ?>
       <a href="../pages/item.php?id=<?= $mi['itemID'] ?>" class="item-card">
         <div class="item-card-img">
-          <img src="<?= $mi['thumb'] ? h($mi['thumb']) : 'https://placehold.co/400x300/e8e6df/9b9891?text=No+Image' ?>"
+          <?php
+            $thumbSrc = $mi['thumb'] ?? '';
+            if ($thumbSrc && !str_starts_with($thumbSrc, 'http')) {
+                $thumbSrc = $_projectRoot . '/' . ltrim($thumbSrc, '/');
+            }
+          ?>
+          <img src="<?= $thumbSrc ? h($thumbSrc) : 'https://placehold.co/400x300/e8e6df/9b9891?text=No+Image' ?>"
                alt="<?= h($mi['title']) ?>" loading="lazy"/>
         </div>
         <div class="item-card-body">
