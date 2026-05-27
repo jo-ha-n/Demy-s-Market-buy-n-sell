@@ -39,7 +39,7 @@ $hideHeader = $hideHeader ?? false;
   <a href="../index.html" class="topbar-logo">Demy's</a>
 
   <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'search.php'): ?>
-  <form class="topbar-search" action="/GitHub/Demy-s-Market-buy-n-sell/src/pages/search.php" method="GET">
+  <form class="topbar-search" action="../pages/search.php" method="GET">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
     </svg>
@@ -47,15 +47,15 @@ $hideHeader = $hideHeader ?? false;
   </form>
   <?php endif; ?>
 
-  <nav class="topbar-nav" id="topbarNav" data-server-rendered="true">
+  <nav class="topbar-nav" id="topbarNav" data-php-rendered="true">
     <?php if ($user): ?>
-      <a href="/GitHub/Demy-s-Market-buy-n-sell/src/pages/sell.php" class="btn-accent">+ Sell</a>
-      <a href="/GitHub/Demy-s-Market-buy-n-sell/src/pages/messages.php" class="topbar-icon" title="Messages">
+      <a href="../pages/sell.php" class="btn-accent">+ Sell</a>
+      <a href="../pages/messages.php" class="topbar-icon" title="Messages">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </a>
-      <a href="/GitHub/Demy-s-Market-buy-n-sell/src/config/wishlist.php" class="topbar-icon" title="Wishlist">
+      <a href="../config/wishlist.php" class="topbar-icon" title="Wishlist">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
         </svg>
@@ -65,14 +65,14 @@ $hideHeader = $hideHeader ?? false;
           <?= strtoupper(substr($user['username'], 0, 1)) ?>
         </button>
         <div class="profile-dropdown" id="profileDropdown">
-          <a href="/GitHub/Demy-s-Market-buy-n-sell/src/pages/profile.php">My Profile</a>
+          <a href="../pages/profile.php">My Profile</a>
           <div class="pd-divider"></div>
-          <a href="/GitHub/Demy-s-Market-buy-n-sell/src/pages/logout.php" class="pd-danger" onclick="clearSession()">Sign Out</a>
+          <a href="../pages/logout.php" class="pd-danger" onclick="clearSession()">Sign Out</a>
         </div>
       </div>
     <?php else: ?>
-      <a href="/GitHub/Demy-s-Market-buy-n-sell/src/pages/login.php" class="btn-ghost">Log In</a>
-      <a href="/GitHub/Demy-s-Market-buy-n-sell/src/pages/register.php" class="btn-accent">Sign Up</a>
+      <a href="../pages/login.php" class="btn-ghost">Log In</a>
+      <a href="../pages/register.php" class="btn-accent">Sign Up</a>
     <?php endif; ?>
     <button class="theme-toggle" id="themeToggle" title="Toggle theme">
       <svg class="icon-sun" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

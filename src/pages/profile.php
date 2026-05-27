@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../src/includes/helpers.php';
+require_once __DIR__ . '/../includes/helpers.php';
 requireLogin();
 
 $db      = getDB();
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner) {
             $upd->bind_param('sssi', $username, $address, $contact, $me['userID']);
             $upd->execute();
             setFlash('success', 'Profile updated.');
-            header('Location: /demys/pages/profile.php'); exit;
+            header('Location: ../profile.php'); exit;
         }
     }
 
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner) {
             $upd->bind_param('si', $hash, $me['userID']);
             $upd->execute();
             setFlash('success', 'Password updated.');
-            header('Location: /demys/pages/profile.php'); exit;
+            header('Location: ../profile.php'); exit;
         }
     }
 
@@ -65,20 +65,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner) {
         $upd->bind_param('si', $newRole, $me['userID']);
         $upd->execute();
         setFlash('info', "Switched to {$newRole} profile.");
-        header('Location: /demys/pages/profile.php'); exit;
+        header('Location: ../profile.php'); exit;
     }
 }
 
 /* ── Stats: avg rating, review count, listing count ── */
 $statsQ = $db->prepare(
     'SELECT
-       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
-       COUNT(DISTINCT r.reviewID)          AS review_count,
-       COUNT(DISTINCT i.itemID)            AS listing_count
-     FROM Users u
-     LEFT JOIN Item    i ON i.sellerID = u.userID AND i.status = "active"
-     LEFT JOIN Reviews r ON r.itemID   = i.itemID
-     WHERE u.userID = ?'
+      COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+      COUNT(DISTINCT r.reviewID)          AS review_count,
+      COUNT(DISTINCT i.itemID)            AS listing_count
+    FROM Users u
+    LEFT JOIN Item    i ON i.sellerID = u.userID AND i.status = "active"
+    LEFT JOIN Reviews r ON r.itemID   = i.itemID
+    WHERE u.userID = ?'
 );
 $statsQ->bind_param('i', $viewID);
 $statsQ->execute();
@@ -96,10 +96,10 @@ $listQ = $db->prepare(
     "SELECT i.itemID, i.title, i.price, i.created_at, i.status,
             (SELECT images FROM Image WHERE itemID=i.itemID LIMIT 1) AS thumb,
             c.category_name
-     FROM Item i
-     LEFT JOIN Category c ON c.categoryID = i.categoryID
-     WHERE i.sellerID = ? AND i.status = 'active'
-     ORDER BY {$orderBy} LIMIT 20"
+    FROM Item i
+    LEFT JOIN Category c ON c.categoryID = i.categoryID
+    WHERE i.sellerID = ? AND i.status = 'active'
+    ORDER BY {$orderBy} LIMIT 20"
 );
 $listQ->bind_param('i', $viewID);
 $listQ->execute();
@@ -110,11 +110,11 @@ $revQ = $db->prepare(
     'SELECT r.reviewID, r.rating, r.body, r.created_at,
             i.title AS item_title, i.price AS item_price, i.itemID,
             u.username AS reviewer_name, u.userID AS reviewer_id
-     FROM Reviews r
-     JOIN Item i ON i.itemID = r.itemID
-     JOIN Users u ON u.userID = r.userID
-     WHERE i.sellerID = ?
-     ORDER BY r.created_at DESC LIMIT 30'
+    FROM Reviews r
+    JOIN Item i ON i.itemID = r.itemID
+    JOIN Users u ON u.userID = r.userID
+    WHERE i.sellerID = ?
+    ORDER BY r.created_at DESC LIMIT 30'
 );
 $revQ->bind_param('i', $viewID);
 $revQ->execute();
@@ -125,7 +125,7 @@ $totalListings = count($listings);
 $totalReviews  = count($reviews);
 
 $pageTitle = h($profile['username']) . "'s Profile — Demy's";
-require_once __DIR__ . '/../src/includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
@@ -506,7 +506,7 @@ textarea.edit-input { resize:vertical; min-height:80px; }
   <div class="edit-drawer">
     <div class="edit-drawer-title">
       Edit Profile
-      <a href="/demys/pages/profile.php">✕ Discard</a>
+      <a href="profile.php">✕ Discard</a>
     </div>
 
     <div class="edit-section-label">Profile Info</div>
@@ -517,7 +517,7 @@ textarea.edit-input { resize:vertical; min-height:80px; }
         <div class="edit-field">
           <label class="edit-label">Username</label>
           <input type="text" name="username" class="edit-input"
-                 value="<?= h($me['username']) ?>" required/>
+                value="<?= h($me['username']) ?>" required/>
         </div>
         <div class="edit-field">
           <label class="edit-label">Email</label>
@@ -526,17 +526,17 @@ textarea.edit-input { resize:vertical; min-height:80px; }
         <div class="edit-field">
           <label class="edit-label">Address / City</label>
           <input type="text" name="address" class="edit-input" placeholder="e.g. Quezon City"
-                 value="<?= h($me['address'] ?? '') ?>"/>
+                value="<?= h($me['address'] ?? '') ?>"/>
         </div>
         <div class="edit-field">
           <label class="edit-label">Contact Number</label>
           <input type="text" name="contact" class="edit-input" placeholder="+63 9xx xxx xxxx"
-                 value="<?= h($me['contact_number'] ?? '') ?>"/>
+                value="<?= h($me['contact_number'] ?? '') ?>"/>
         </div>
       </div>
       <div class="edit-actions">
         <button type="submit" class="btn-save">Save Changes</button>
-        <a href="/demys/pages/profile.php" class="btn-discard">Discard</a>
+        <a href="profile.php" class="btn-discard">Discard</a>
       </div>
     </form>
 
@@ -566,12 +566,12 @@ textarea.edit-input { resize:vertical; min-height:80px; }
   <!-- ── Tabs ── -->
   <div class="prof-tabs">
     <a class="prof-tab <?= $tab==='deals'?'active':'' ?>"
-       href="?tab=deals<?= $isOwner && $editMode ? '&edit=1' : '' ?>">
+      href="?tab=deals<?= $isOwner && $editMode ? '&edit=1' : '' ?>">
       Deals
       <span class="tab-count"><?= $stats['listing_count'] ?></span>
     </a>
     <a class="prof-tab <?= $tab==='reviews'?'active':'' ?>"
-       href="?tab=reviews<?= $isOwner && $editMode ? '&edit=1' : '' ?>">
+      href="?tab=reviews<?= $isOwner && $editMode ? '&edit=1' : '' ?>">
       Reviews
       <span class="tab-count"><?= $stats['review_count'] ?></span>
     </a>
@@ -593,13 +593,13 @@ textarea.edit-input { resize:vertical; min-height:80px; }
     <h3>No active listings</h3>
     <p><?= $isOwner ? 'Start selling something!' : 'This user has no active listings.' ?></p>
     <?php if ($isOwner): ?>
-    <a href="/demys/pages/sell.php" class="btn-accent" style="margin-top:16px;display:inline-flex">+ Post a Listing</a>
+    <a href="sell.php" class="btn-accent" style="margin-top:16px;display:inline-flex">+ Post a Listing</a>
     <?php endif; ?>
   </div>
   <?php else: ?>
   <div class="listings-grid">
     <?php foreach($listings as $item): ?>
-    <a href="/demys/pages/item.php?id=<?= $item['itemID'] ?>" class="listing-card">
+    <a href="../templates/item.html?id=<?= $item['itemID'] ?>" class="listing-card">
       <div class="listing-img">
         <?php if ($item['thumb']): ?>
           <img src="<?= h($item['thumb']) ?>" alt="<?= h($item['title']) ?>" loading="lazy"/>
@@ -691,4 +691,4 @@ textarea.edit-input { resize:vertical; min-height:80px; }
 
 </div>
 
-<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

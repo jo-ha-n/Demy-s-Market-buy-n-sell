@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = "Sell an Item — Demy's";
-require_once __DIR__ . '/../src/includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 <link rel="stylesheet" href="../assets/css/main.css"/>
 <div class="container">
@@ -119,11 +119,11 @@ require_once __DIR__ . '/../src/includes/header.php';
 
         <div style="display:flex;gap:12px;margin-top:8px">
           <button type="submit" class="btn-accent btn-lg" style="flex:1">Post Listing</button>
-          <a href="/demys/index.php" class="btn-ghost btn-lg">Cancel</a>
+          <a href="/demys/index.html" class="btn-ghost btn-lg">Cancel</a>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

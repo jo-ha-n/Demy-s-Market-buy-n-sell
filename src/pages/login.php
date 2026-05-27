@@ -11,7 +11,7 @@ if ($ajax === '1' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     ]);
 }
 
-if (isLoggedIn() && $ajax !== '1') { header('Location: ../src/index.html'); exit; }
+// isLoggedIn guard removed — PHP session may still be alive after JS logout.
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -25,12 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $row = $stmt->get_result()->fetch_assoc();
     if ($row && password_verify($password, $row['password'])) {
         $_SESSION['userID'] = $row['userID'];
-        setFlash('success', "Welcome back, {$row['username']}!");
         $user = ['userID' => $row['userID'], 'username' => $row['username'], 'role' => $row['role'] ?? 'buyer'];
         if ($ajax === '1') {
             respond(['success' => true, 'message' => "Welcome back, {$row['username']}!", 'user' => $user]);
         }
-        header('Location: ' . ($_GET['next'] ?? '../src/index.html')); exit;
+        $sessionParam = urlencode(json_encode($user));
+        $next = $_GET['next'] ?? '../index.html';
+        $sep  = strpos($next, '?') !== false ? '&' : '?';
+        header('Location: ' . $next . $sep . 'session=' . $sessionParam); exit;
     } else {
         if ($ajax === '1') {
             respond(['success' => false, 'error' => 'Invalid email or password.']);

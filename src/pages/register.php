@@ -11,7 +11,7 @@ if ($ajax === '1' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     ]);
 }
 
-if (isLoggedIn() && $ajax !== '1') { header('Location: ../src/index.html'); exit; }
+// isLoggedIn guard removed — PHP session may linger after JS logout.
 
 $errors = [];
 
@@ -36,12 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param('ssss', $email, $username, $hash, $role);
         if ($stmt->execute()) {
             $_SESSION['userID'] = $db->insert_id;
-            setFlash('success', "Welcome to Demy's Buy and Sell, {$username}!");
             $user = ['userID' => $db->insert_id, 'username' => $username, 'role' => $role];
             if ($ajax === '1') {
                 respond(['success' => true, 'message' => "Welcome to Demy's Buy and Sell, {$username}!", 'user' => $user]);
             }
-            header('Location: ../src/index.html?registered=1&user=' . rawurlencode($username)); exit;
+            $sessionParam = urlencode(json_encode($user));
+            header('Location: ../index.html?session=' . $sessionParam . '&welcome=1'); exit;
         } else {
             $errors[] = $db->errno === 1062 ? 'Email or username already taken.' : 'Registration failed. Try again.';
         }
@@ -245,13 +245,13 @@ select.rinput { appearance:none; cursor:pointer; }
         <div class="rfield">
           <label class="rlabel">Email</label>
           <input type="email" name="email" class="rinput" placeholder="you@example.com"
-                 value="<?= h($_POST['email'] ?? '') ?>" required/>
+                  value="<?= h($_POST['email'] ?? '') ?>" required/>
         </div>
 
         <div class="rfield">
           <label class="rlabel">Username</label>
           <input type="text" name="username" class="rinput" placeholder="your_handle"
-                 value="<?= h($_POST['username'] ?? '') ?>" required/>
+                  value="<?= h($_POST['username'] ?? '') ?>" required/>
         </div>
 
         <div class="reg-row">
@@ -288,7 +288,7 @@ select.rinput { appearance:none; cursor:pointer; }
         <button type="submit" class="reg-submit">Create Account</button>
       </form>
 
-      <p class="reg-footer">Already have an account? <a href="../pages/login.php">Log in</a></p>
+      <p class="reg-footer">Already have an account? <a href="../login.php">Log in</a></p>
     </div>
 
   </div>

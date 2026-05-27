@@ -22,7 +22,7 @@ function clearSession() {
 async function fetchAuthCsrf() {
   if (window.authCsrfToken) return window.authCsrfToken;
   try {
-    const res = await fetch('../pages/login.php?ajax=1');
+    const res = await fetch('../src/pages/login.php?ajax=1');
     const data = await res.json();
     window.authCsrfToken = data.csrfToken;
     window.authUser = data.user || null;
@@ -32,19 +32,7 @@ async function fetchAuthCsrf() {
   }
 }
 
-async function initAuthState() {
-  if (getSession()) return;
-  try {
-    const res = await fetch('../pages/login.php?ajax=1');
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.user) {
-      setSession(data.user);
-    }
-  } catch (err) {
-    // ignore
-  }
-}
+// initAuthState removed — caused PHP session to re-hydrate localStorage after logout.
 
 function openAuthOverlay(mode = 'login') {
   const overlay = document.getElementById('authOverlay');
@@ -96,8 +84,8 @@ async function submitAuthForm(event, mode) {
   if (!form) return;
 
   const url = mode === 'login'
-    ? '../pages/login.php?ajax=1'
-    : '../pages/register.php?ajax=1';
+    ? '../src/pages/login.php?ajax=1'
+    : '../src/pages/register.php?ajax=1';
 
   const data = new FormData(form);
   data.append('ajax', '1');
@@ -243,6 +231,7 @@ function renderTopbarNav() {
   const projectFolderName = '/GitHub/Demy-s-Market-buy-n-sell';
 
   const base = `${projectFolderName}/src/pages/`;
+  const templates = `${projectFolderName}/src/templates/`;
   const root = `${projectFolderName}/src/`;
   const config = `${projectFolderName}/src/config/`;
 
@@ -283,8 +272,8 @@ function renderTopbarNav() {
             <span class="pd-role">${session.role}</span>
           </div>
           <a href="${base}profile.php">My Profile</a>
-          <a href="${base}my-listings.html">My Listings</a>
-          <a href="${base}transactions.html">Transactions</a>
+          <a href="${templates}my-listings.html">My Listings</a>
+          <a href="${templates}transactions.html">Transactions</a>
           <div class="pd-divider"></div>
           <a href="#" class="pd-danger" onclick="logOut('${root}')">Sign Out</a>
         </div>
@@ -312,8 +301,7 @@ function renderTopbarNav() {
 
 function logOut(root = '') {
   clearSession();
-  showFlash('success', 'Signed out.');
-  setTimeout(() => window.location.href = root + 'index.html', 600);
+  window.location.href = root + 'index.html?loggedout=1';
 }
 
 // ── PHP page: profile dropdown bind ──────────────────────────────────────────
@@ -324,4 +312,28 @@ document.getElementById('profileBtn')?.addEventListener('click', e => {
 });
 
 // ── Init nav on HTML pages ────────────────────────────────────────────────────
-initAuthState().then(renderTopbarNav);
+// localStorage is the single source of truth for the JS nav.
+// login.php     → ?session=<json>
+// register.php  → ?session=<json>&welcome=1
+// logOut()      → ?loggedout=1
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('loggedout') === '1') {
+    clearSession();
+  } else if (params.get('session')) {
+    try {
+      const user = JSON.parse(decodeURIComponent(params.get('session')));
+      if (user && user.userID) {
+        setSession(user);
+        const msg = params.get('welcome') === '1'
+          ? "Welcome to Demy’s, " + user.username + "!"
+          : "Welcome back, " + user.username + "!";
+        showFlash('success', msg);
+      }
+    } catch (e) {}
+  }
+  renderTopbarNav();
+  if (params.get('loggedout') || params.get('session')) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+})();
