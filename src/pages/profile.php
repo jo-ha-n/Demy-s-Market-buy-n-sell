@@ -13,7 +13,7 @@ $viewID  = isset($_GET['id']) ? (int)$_GET['id'] : $me['userID'];
 $isOwner = ($viewID === (int)$me['userID']);
 
 /* ── Load the profile user ── */
-$ustmt = $db->prepare('SELECT userID,email,username,role,address,contact_number,date_joined FROM Users WHERE userID=?');
+$ustmt = $db->prepare('SELECT userID,email,username,role,contact_number,date_joined,coordinates FROM Users WHERE userID=?');
 $ustmt->bind_param('i', $viewID);
 $ustmt->execute();
 $profile = $ustmt->get_result()->fetch_assoc();
@@ -529,10 +529,10 @@ textarea.edit-input { resize:vertical; min-height:80px; }
       </div>
 
       <div class="prof-meta">
-        <?php if ($profile['address']): ?>
+        <?php if ($profile['coordinates']): ?>
         <span class="prof-meta-item">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <?= h($profile['address']) ?>
+          <?= h($profile['coordinates']) ?>
         </span>
         <?php endif; ?>
         <?php if ($profile['contact_number']): ?>
