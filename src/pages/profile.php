@@ -574,36 +574,44 @@ textarea.edit-input { resize:vertical; min-height:80px; }
       <a href="profile.php">✕ Discard</a>
     </div>
 
-    <div class="edit-section-label">Profile Info</div>
-    <form method="POST">
-      <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>"/>
-      <input type="hidden" name="action" value="profile"/>
-      <div class="edit-grid">
-        <div class="edit-field">
-          <label class="edit-label">Username</label>
-          <input type="text" name="username" class="edit-input"
-                value="<?= h($me['username']) ?>" required/>
-        </div>
-        <div class="edit-field">
-          <label class="edit-label">Email</label>
-          <input type="email" class="edit-input" value="<?= h($me['email']) ?>" disabled style="opacity:0.55"/>
-        </div>
-        <div class="edit-field">
-          <label class="edit-label">Address / City</label>
-          <input type="text" name="address" class="edit-input" placeholder="e.g. Quezon City"
-                value="<?= h($me['address'] ?? '') ?>"/>
-        </div>
-        <div class="edit-field">
-          <label class="edit-label">Contact Number</label>
-          <input type="text" name="contact" class="edit-input" placeholder="+63 9xx xxx xxxx"
-                value="<?= h($me['contact_number'] ?? '') ?>"/>
-        </div>
+  <div class="edit-section-label">Profile Info</div>
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>"/>
+    <input type="hidden" name="action" value="profile"/>
+    
+    <input type="hidden" name="coord_lat" id="coord-lat" value=""/>
+    <input type="hidden" name="coord_lng" id="coord-lng" value=""/>
+
+    <div class="edit-grid">
+      <div class="edit-field">
+        <label class="edit-label">Username</label>
+        <input type="text" name="username" class="edit-input"
+              value="<?= h($me['username']) ?>" required/>
       </div>
-      <div class="edit-actions">
-        <button type="submit" class="btn-save">Save Changes</button>
-        <a href="profile.php" class="btn-discard">Discard</a>
+      <div class="edit-field">
+        <label class="edit-label">Email</label>
+        <input type="email" class="edit-input" value="<?= h($me['email']) ?>" disabled style="opacity:0.55"/>
       </div>
-    </form>
+      <div class="edit-field">
+        <label class="edit-label">Address / City</label>
+        <input type="text" name="address" id="address-input" class="edit-input" placeholder="e.g. Quezon City"
+              value="<?= h($me['address'] ?? '') ?>"/>
+        
+        <button type="button" class="btn-pick-map" onclick="openMapPicker()">
+          📍 Pick from Map
+        </button>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Contact Number</label>
+        <input type="text" name="contact" class="edit-input" placeholder="+63 9xx xxx xxxx"
+              value="<?= h($me['contact_number'] ?? '') ?>"/>
+      </div>
+    </div>
+    <div class="edit-actions">
+      <button type="submit" class="btn-save">Save Changes</button>
+      <a href="profile.php" class="btn-discard">Discard</a>
+    </div>
+  </form>
 
     <div style="margin-top:28px">
       <div class="edit-section-label">Change Password</div>
@@ -626,22 +634,22 @@ textarea.edit-input { resize:vertical; min-height:80px; }
       </form>
     </div>
     <!-- ── Map Picker Modal ── -->
-  <div class="map-modal-overlay" id="map-modal-overlay">
-    <div class="map-modal">
-      <div class="map-modal-header">
-        <span class="map-modal-title">📍 Pick Your Location</span>
-        <button class="map-modal-close" onclick="closeMapPicker()" title="Close">✕</button>
-      </div>
-      <div id="map-container"></div>
-      <div class="map-modal-footer">
-        <span class="map-address-preview" id="map-address-preview">Click on the map to set your location…</span>
-        <button class="btn-map-confirm" id="btn-map-confirm" onclick="confirmLocation()" disabled>
-          Use This Location
-        </button>
+    <div class="map-modal-overlay" id="map-modal-overlay">
+      <div class="map-modal">
+        <div class="map-modal-header">
+          <span class="map-modal-title">📍 Pick Your Location</span>
+          <button class="map-modal-close" onclick="closeMapPicker()" title="Close">✕</button>
+        </div>
+        <div id="map-container"></div>
+        <div class="map-modal-footer">
+          <span class="map-address-preview" id="map-address-preview">Click on the map to set your location…</span>
+          <button class="btn-map-confirm" id="btn-map-confirm" onclick="confirmLocation()" disabled>
+            Use This Location
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-  </div>
+    </div>
   <?php endif; ?>
 
   <!-- ── Tabs ── -->
