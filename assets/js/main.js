@@ -231,6 +231,7 @@ function renderTopbarNav() {
   const projectFolderName = '/GitHub/Demy-s-Market-buy-n-sell';
 
   const base = `${projectFolderName}/src/pages/`;
+  const templates = `${projectFolderName}/src/templates/`;
   const root = `${projectFolderName}/src/`;
   const config = `${projectFolderName}/src/config/`;
 
@@ -271,8 +272,8 @@ function renderTopbarNav() {
             <span class="pd-role">${session.role}</span>
           </div>
           <a href="${base}profile.php">My Profile</a>
-          <a href="${base}my-listings.html">My Listings</a>
-          <a href="${base}transactions.html">Transactions</a>
+          <a href="${templates}my-listings.html">My Listings</a>
+          <a href="${templates}transactions.html">Transactions</a>
           <div class="pd-divider"></div>
           <a href="#" class="pd-danger" onclick="logOut('${root}')">Sign Out</a>
         </div>

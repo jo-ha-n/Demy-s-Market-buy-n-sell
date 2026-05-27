@@ -39,7 +39,7 @@ $hideHeader = $hideHeader ?? false;
   <a href="../index.html" class="topbar-logo">Demy's</a>
 
   <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'search.php'): ?>
-  <form class="topbar-search" action="/GitHub/Demy-s-Market-buy-n-sell/src/pages/search.php" method="GET">
+  <form class="topbar-search" action="../pages/search.php" method="GET">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
     </svg>

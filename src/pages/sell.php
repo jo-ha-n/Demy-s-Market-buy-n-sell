@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = "Sell an Item — Demy's";
-require_once __DIR__ . '/../src/includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 <link rel="stylesheet" href="../assets/css/main.css"/>
 <div class="container">
@@ -126,4 +126,4 @@ require_once __DIR__ . '/../src/includes/header.php';
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../src/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
