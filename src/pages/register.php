@@ -427,8 +427,7 @@ select.rinput { appearance:none; cursor:pointer; }
   const btnText    = document.getElementById('loc-btn-text');
   const latInput   = document.getElementById('loc-lat');
   const lngInput   = document.getElementById('loc-lng');
-
-  let map, marker, pendingLat = null, pendingLng = null;
+  let map, marker, pendingLat = null, pendingLng = null, pendingLabel = null;
 
   function initMap() {
     if (map) return;
@@ -461,7 +460,7 @@ select.rinput { appearance:none; cursor:pointer; }
     setTimeout(() => map.invalidateSize(), 10);
   }
 
-  function setPin(lat, lng) {
+  async function setPin(lat, lng) {
     pendingLat = lat.toFixed(6);
     pendingLng = lng.toFixed(6);
 
@@ -485,7 +484,19 @@ select.rinput { appearance:none; cursor:pointer; }
       });
     }
 
-    coordsText.textContent = `${pendingLat}, ${pendingLng}`;
+    // Reverse geocode via your PHP helper
+    coordsText.textContent = 'Looking up address…';
+    confirmBtn.disabled = true;
+
+    try {
+      const res = await fetch(`/src/api/reverse-geocode.php?lat=${pendingLat}&lng=${pendingLng}`);
+      const data = await res.json();
+      pendingLabel = data.label || `${pendingLat}, ${pendingLng}`;
+    } catch {
+      pendingLabel = `${pendingLat}, ${pendingLng}`;
+    }
+
+    coordsText.textContent = pendingLabel;
     confirmBtn.disabled = false;
   }
 
@@ -565,7 +576,7 @@ select.rinput { appearance:none; cursor:pointer; }
     latInput.value = pendingLat;
     lngInput.value = pendingLng;
     openBtn.classList.add('has-location');
-    btnText.textContent = `📍 ${pendingLat}, ${pendingLng}`;
+    btnText.textContent = `📍 ${pendingLabel}`;
     closeModal();
   });
 })();

@@ -33,11 +33,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner) {
         $username = trim($_POST['username'] ?? '');
         $address  = trim($_POST['address']  ?? '');
         $contact  = trim($_POST['contact']  ?? '');
-        $desc     = trim($_POST['description'] ?? '');
+        $lat      = isset($_POST['coord_lat']) && $_POST['coord_lat'] !== '' ? (float)$_POST['coord_lat'] : null;
+        $lng      = isset($_POST['coord_lng']) && $_POST['coord_lng'] !== '' ? (float)$_POST['coord_lng'] : null;
+
         if (strlen($username) < 3) $errors[] = 'Username must be at least 3 characters.';
+
         if (empty($errors)) {
-            $upd = $db->prepare('UPDATE Users SET username=?,address=?,contact_number=? WHERE userID=?');
-            $upd->bind_param('sssi', $username, $address, $contact, $me['userID']);
+            if ($lat !== null && $lng !== null) {
+                // Save address + coordinates POINT
+                $upd = $db->prepare('UPDATE Users SET username=?, address=?, contact_number=?, coordinates=ST_GeomFromText(?) WHERE userID=?');
+                $point = "POINT($lng $lat)"; // WKT: X=lng, Y=lat
+                $upd->bind_param('ssssi', $username, $address, $contact, $point, $me['userID']);
+            } else {
+                $upd = $db->prepare('UPDATE Users SET username=?, address=?, contact_number=? WHERE userID=?');
+                $upd->bind_param('sssi', $username, $address, $contact, $me['userID']);
+            }
             $upd->execute();
             setFlash('success', 'Profile updated.');
             header('Location: ../profile.php'); exit;
@@ -421,6 +431,61 @@ textarea.edit-input { resize:vertical; min-height:80px; }
   .prof-actions{flex-direction:row; flex-wrap:wrap;}
   .edit-grid{grid-template-columns:1fr;}
 }
+
+/* ── Map Picker Modal ── */
+.map-modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(3px);
+  align-items: center; justify-content: center;
+}
+.map-modal-overlay.open { display: flex; }
+.map-modal {
+  background: var(--surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); width: min(680px, 95vw);
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.map-modal-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.map-modal-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px;
+}
+.map-modal-close {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.map-modal-close:hover { background: var(--surface2); color: var(--text); }
+#map-container { height: 360px; width: 100%; }
+.map-modal-footer {
+  padding: 14px 20px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.map-address-preview {
+  flex: 1; font-size: 13px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.map-address-preview.resolved { color: var(--text); }
+.btn-map-confirm {
+  padding: 9px 20px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius); font-size: 13px;
+  font-weight: 600; font-family: 'Syne', sans-serif;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+}
+.btn-map-confirm:hover { background: var(--accent-h); }
+.btn-map-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-pick-map {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; background: var(--surface2);
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  font-size: 13px; font-weight: 600; color: var(--text);
+  cursor: pointer; transition: background 0.2s, border-color 0.2s;
+  font-family: 'DM Sans', sans-serif; white-space: nowrap;
+  margin-top: 6px; width: 100%;
+  justify-content: center;
+}
+.btn-pick-map:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
 </style>
 
 <div class="prof-wrap">
@@ -560,6 +625,22 @@ textarea.edit-input { resize:vertical; min-height:80px; }
         </div>
       </form>
     </div>
+    <!-- ── Map Picker Modal ── -->
+  <div class="map-modal-overlay" id="map-modal-overlay">
+    <div class="map-modal">
+      <div class="map-modal-header">
+        <span class="map-modal-title">📍 Pick Your Location</span>
+        <button class="map-modal-close" onclick="closeMapPicker()" title="Close">✕</button>
+      </div>
+      <div id="map-container"></div>
+      <div class="map-modal-footer">
+        <span class="map-address-preview" id="map-address-preview">Click on the map to set your location…</span>
+        <button class="btn-map-confirm" id="btn-map-confirm" onclick="confirmLocation()" disabled>
+          Use This Location
+        </button>
+      </div>
+    </div>
+  </div>
   </div>
   <?php endif; ?>
 
@@ -690,5 +771,100 @@ textarea.edit-input { resize:vertical; min-height:80px; }
   <?php endif; ?>
 
 </div>
+
+<script>
+  let _map = null, _marker = null, _pickedLat = null, _pickedLng = null, _pickedLabel = '';
+
+  function openMapPicker() {
+    document.getElementById('map-modal-overlay').classList.add('open');
+    // Init map once
+    if (!_map) {
+      _map = L.map('map-container').setView([14.5995, 120.9842], 12); // Manila default
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors', maxZoom: 19
+      }).addTo(_map);
+      _map.on('click', onMapClick);
+
+      // Try to center on existing coords
+      const lat = document.getElementById('coord-lat').value;
+      const lng = document.getElementById('coord-lng').value;
+      if (lat && lng) {
+        _map.setView([lat, lng], 15);
+        placeMarker(parseFloat(lat), parseFloat(lng));
+        fetchAddress(parseFloat(lat), parseFloat(lng));
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          _map.setView([pos.coords.latitude, pos.coords.longitude], 14);
+        });
+      }
+    }
+    // Leaflet needs a size invalidation after modal opens
+    setTimeout(() => _map.invalidateSize(), 120);
+  }
+
+  function closeMapPicker() {
+    document.getElementById('map-modal-overlay').classList.remove('open');
+  }
+
+  function onMapClick(e) {
+    placeMarker(e.latlng.lat, e.latlng.lng);
+    fetchAddress(e.latlng.lat, e.latlng.lng);
+  }
+
+  function placeMarker(lat, lng) {
+    _pickedLat = lat; _pickedLng = lng;
+    if (_marker) {
+      _marker.setLatLng([lat, lng]);
+    } else {
+      _marker = L.marker([lat, lng], { draggable: true }).addTo(_map);
+      _marker.on('dragend', e => {
+        const pos = e.target.getLatLng();
+        _pickedLat = pos.lat; _pickedLng = pos.lng;
+        fetchAddress(pos.lat, pos.lng);
+      });
+    }
+  }
+
+  function fetchAddress(lat, lng) {
+    const preview = document.getElementById('map-address-preview');
+    const btn     = document.getElementById('btn-map-confirm');
+    preview.textContent = 'Resolving address…';
+    preview.classList.remove('resolved');
+    btn.disabled = true;
+    _pickedLabel = '';
+
+    fetch(`/src/api/reverse-geocode.php?lat=${lat}&lng=${lng}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.label) {
+          _pickedLabel = data.label;
+          preview.textContent = data.label;
+          preview.classList.add('resolved');
+          btn.disabled = false;
+        } else {
+          preview.textContent = 'Could not resolve address. You can still use this location.';
+          _pickedLabel = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          btn.disabled = false;
+        }
+      })
+      .catch(() => {
+        preview.textContent = 'Error fetching address.';
+        btn.disabled = true;
+      });
+  }
+
+  function confirmLocation() {
+    if (_pickedLat === null) return;
+    document.getElementById('coord-lat').value   = _pickedLat;
+    document.getElementById('coord-lng').value   = _pickedLng;
+    document.getElementById('address-input').value = _pickedLabel;
+    closeMapPicker();
+  }
+
+  // Close on overlay click
+  document.getElementById('map-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeMapPicker();
+  });
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
