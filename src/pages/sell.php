@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/../includes/helpers.php';
-requireLogin();
+
+if (!isLoggedIn()) {
+    header('Location: login.php');
+    exit;
+}
 
 $db   = getDB();
 $cats = $db->query('SELECT * FROM Category')->fetch_all(MYSQLI_ASSOC);
