@@ -532,7 +532,7 @@ textarea.edit-input { resize:vertical; min-height:80px; }
         <?php if ($profile['coordinates']): ?>
           <span class="prof-meta-item">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <?= reverseGeocode($profile['lat'], $profile['long']) ?>
+            <?= reverseGeocode($profile['lat'], $profile['lng']) ?>
         </span>
         <?php endif; ?>
         <?php if ($profile['contact_number']): ?>
@@ -686,7 +686,7 @@ textarea.edit-input { resize:vertical; min-height:80px; }
   <?php else: ?>
   <div class="listings-grid">
     <?php foreach($listings as $item): ?>
-    <a href="../templates/item.html?id=<?= $item['itemID'] ?>" class="listing-card">
+    <a href="../pages/item.php?id=<?= $item['itemID'] ?>" class="listing-card">
       <div class="listing-img">
         <?php if ($item['thumb']): ?>
           <img src="<?= h($item['thumb']) ?>" alt="<?= h($item['title']) ?>" loading="lazy"/>
