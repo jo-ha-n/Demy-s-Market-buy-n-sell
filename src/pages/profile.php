@@ -13,7 +13,7 @@ $viewID  = isset($_GET['id']) ? (int)$_GET['id'] : $me['userID'];
 $isOwner = ($viewID === (int)$me['userID']);
 
 /* ── Load the profile user ── */
-$ustmt = $db->prepare('SELECT userID,email,username,role,contact_number,date_joined,coordinates FROM Users WHERE userID=?');
+$ustmt = $db->prepare('SELECT userID,email,username,role,contact_number,date_joined, coordinates,ST_Y(coordinates) AS lat, ST_X(coordinates) AS lng FROM Users WHERE userID=?');
 $ustmt->bind_param('i', $viewID);
 $ustmt->execute();
 $profile = $ustmt->get_result()->fetch_assoc();
@@ -530,9 +530,9 @@ textarea.edit-input { resize:vertical; min-height:80px; }
 
       <div class="prof-meta">
         <?php if ($profile['coordinates']): ?>
-        <span class="prof-meta-item">
-          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <?= h($profile['coordinates']) ?>
+          <span class="prof-meta-item">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <?= reverseGeocode($profile['lat'], $profile['long']) ?>
         </span>
         <?php endif; ?>
         <?php if ($profile['contact_number']): ?>
@@ -834,6 +834,32 @@ textarea.edit-input { resize:vertical; min-height:80px; }
   function fetchAddress(lat, lng) {
     const preview = document.getElementById('map-address-preview');
     const btn     = document.getElementById('btn-map-confirm');
+    preview.textContent = 'Resolving address…';
+    preview.classList.remove('resolved');
+    btn.disabled = true;
+    _pickedLabel = '';
+
+    fetch(`../api/reverse-geocode.php?lat=${lat}&lng=${lng}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.label) {
+          _pickedLabel = data.label;
+          preview.textContent = data.label;
+          preview.classList.add('resolved');
+          btn.disabled = false;
+        } else {
+          preview.textContent = 'Could not resolve address. You can still use this location.';
+          _pickedLabel = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          btn.disabled = false;
+        }
+      })
+      .catch(() => {
+        preview.textContent = 'Error fetching address.';
+        btn.disabled = true;
+      });
+  }
+
+  function fetchCurrentAddress(lat, lng) {
     preview.textContent = 'Resolving address…';
     preview.classList.remove('resolved');
     btn.disabled = true;
