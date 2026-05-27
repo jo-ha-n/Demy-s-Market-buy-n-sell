@@ -11,7 +11,7 @@ if ($ajax === '1' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     ]);
 }
 
-if (isLoggedIn() && $ajax !== '1') { header('Location: ../src/index.html'); exit; }
+// Removed: don't auto-redirect away — PHP session may still be alive after JS logout.
 
 $errors = [];
 
@@ -288,7 +288,7 @@ select.rinput { appearance:none; cursor:pointer; }
         <button type="submit" class="reg-submit">Create Account</button>
       </form>
 
-      <p class="reg-footer">Already have an account? <a href="../pages/login.php">Log in</a></p>
+      <p class="reg-footer">Already have an account? <a href="../login.php">Log in</a></p>
     </div>
 
   </div>

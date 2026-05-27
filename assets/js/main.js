@@ -22,7 +22,7 @@ function clearSession() {
 async function fetchAuthCsrf() {
   if (window.authCsrfToken) return window.authCsrfToken;
   try {
-    const res = await fetch('../src/pages/login.php?ajax=1');
+    const res = await fetch('../pages/login.php?ajax=1');
     const data = await res.json();
     window.authCsrfToken = data.csrfToken;
     window.authUser = data.user || null;
@@ -32,19 +32,8 @@ async function fetchAuthCsrf() {
   }
 }
 
-async function initAuthState() {
-  if (getSession()) return;
-  try {
-    const res = await fetch('../src/pages/login.php?ajax=1');
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.user) {
-      setSession(data.user);
-    }
-  } catch (err) {
-    // ignore
-  }
-}
+// initAuthState removed — it caused PHP session to re-hydrate localStorage
+// after logout, making the logged-out state impossible to maintain.
 
 function openAuthOverlay(mode = 'login') {
   const overlay = document.getElementById('authOverlay');
@@ -96,8 +85,8 @@ async function submitAuthForm(event, mode) {
   if (!form) return;
 
   const url = mode === 'login'
-    ? '../src/pages/login.php?ajax=1'
-    : '../src/pages/register.php?ajax=1';
+    ? '../pages/login.php?ajax=1'
+    : '../pages/register.php?ajax=1';
 
   const data = new FormData(form);
   data.append('ajax', '1');
@@ -323,11 +312,25 @@ document.getElementById('profileBtn')?.addEventListener('click', e => {
 });
 
 // ── Init nav on HTML pages ────────────────────────────────────────────────────
-// If coming from logout, skip initAuthState — the PHP session may still be alive
-// briefly and would re-hydrate localStorage, restoring the logged-in nav incorrectly.
-if (new URLSearchParams(window.location.search).get('loggedout') === '1') {
-  clearSession();
+// localStorage is the single source of truth for the JS nav.
+// login.php passes ?session=<json> so we can hydrate localStorage after redirect.
+// logOut() and logout.php pass ?loggedout=1 so we know to clear it.
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('loggedout') === '1') {
+    clearSession();
+  } else if (params.get('session')) {
+    try {
+      const user = JSON.parse(decodeURIComponent(params.get('session')));
+      if (user && user.userID) {
+        setSession(user);
+        showFlash('success', 'Welcome back, ' + user.username + '!');
+      }
+    } catch (e) {}
+  }
   renderTopbarNav();
-} else {
-  initAuthState().then(renderTopbarNav);
-}
+  // Clean URL so refresh doesn't re-trigger
+  if (params.get('loggedout') || params.get('session')) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+})();
