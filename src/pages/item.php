@@ -29,7 +29,8 @@ $pageTitle  = $notFound ? "Item not found — Demy's" : h($item['title']) . " �
 $extraHead  = <<<HTML
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="/demys/assets/css/item.css"/>
+<link rel="stylesheet" href="../../assets/css/item.css"/>
+<link rel="stylesheet" href="../../assets/css/main.css"/>
 HTML;
 
 // ── Seller data ───────────────────────────────────────────────────────────────
@@ -106,22 +107,6 @@ if ($currentUserID && !$isOwner && !$notFound) {
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
-function h(string $s): string {
-    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
-
-function formatPrice(float $n): string {
-    return '₱' . number_format($n, 2);
-}
-
-function timeAgo(string $datetime): string {
-    $diff = time() - strtotime($datetime);
-    if ($diff < 60)    return 'just now';
-    if ($diff < 3600)  return floor($diff / 60)   . 'm ago';
-    if ($diff < 86400) return floor($diff / 3600)  . 'h ago';
-    return floor($diff / 86400) . 'd ago';
-}
-
 function starsHTML(float $avg, int $count): string {
     if (!$count) return '';
     $rounded = round($avg);
@@ -135,7 +120,7 @@ function starsHTML(float $avg, int $count): string {
 }
 
 // ── Include header ────────────────────────────────────────────────────────────
-require_once __DIR__ . '/../../includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <?php if ($notFound): ?>
@@ -144,7 +129,7 @@ require_once __DIR__ . '/../../includes/header.php';
   <div style="font-size:48px;margin-bottom:16px">😕</div>
   <h2 style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;margin-bottom:8px">Item not found</h2>
   <p style="color:var(--text-2);margin-bottom:24px">It may have been removed, sold, or the link is incorrect.</p>
-  <a href="/demys/pages/search.php" class="btn-accent">Browse listings</a>
+  <a href="../pages/search.php" class="btn-accent">Browse listings</a>
 </div>
 
 <?php else: ?>
@@ -161,11 +146,11 @@ require_once __DIR__ . '/../../includes/header.php';
 
   <!-- Breadcrumbs -->
   <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <a href="/demys/index.html">Home</a>
+    <a href="../index.html">Home</a>
     <span class="sep">›</span>
-    <a href="/demys/pages/search.php">Browse</a>
+    <a href="../pages/search.php">Browse</a>
     <span class="sep">›</span>
-    <a href="/demys/pages/search.php?cat=<?= $item['categoryID'] ?>"><?= h($item['category_name']) ?></a>
+    <a href="../pages/search.php?cat=<?= $item['categoryID'] ?>"><?= h($item['category_name']) ?></a>
     <span class="sep">›</span>
     <span class="current"><?= h($item['title']) ?></span>
   </nav>
@@ -213,7 +198,7 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php if ($tags): ?>
         <div class="item-tags">
           <?php foreach ($tags as $tag): ?>
-            <a href="/demys/pages/search.php?tag=<?= urlencode($tag['name']) ?>" class="tag-pill">#<?= h($tag['name']) ?></a>
+            <a href="../pages/search.php?tag=<?= urlencode($tag['name']) ?>" class="tag-pill">#<?= h($tag['name']) ?></a>
           <?php endforeach; ?>
         </div>
         <?php endif; ?>
@@ -284,12 +269,12 @@ require_once __DIR__ . '/../../includes/header.php';
       <div class="action-card">
         <?php if (!$currentUserID): ?>
           <!-- Guest -->
-          <a href="/demys/pages/login.php" class="btn-buy">Log in to Buy or Offer</a>
+          <a href="../pages/login.php" class="btn-buy">Log in to Buy or Offer</a>
 
         <?php elseif ($isOwner): ?>
           <!-- Owner -->
-          <a href="/demys/pages/sell.php?edit=<?= $itemID ?>" class="btn-buy" style="background:var(--text-1)">✏️ Edit Listing</a>
-          <form method="POST" action="/demys/api/item-status.php" onsubmit="return confirm('Mark this item as sold?')">
+          <a href="../pages/sell.php?edit=<?= $itemID ?>" class="btn-buy" style="background:var(--text-1)">✏️ Edit Listing</a>
+          <form method="POST" action="../api/item-status.php" onsubmit="return confirm('Mark this item as sold?')">
             <input type="hidden" name="itemID" value="<?= $itemID ?>"/>
             <input type="hidden" name="status" value="sold"/>
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>"/>
@@ -313,17 +298,17 @@ require_once __DIR__ . '/../../includes/header.php';
               else                               echo '🤝 Offer sent — awaiting seller response.';
             ?>
           </div>
-          <a href="/demys/pages/messages.php?with=<?= $item['sellerID'] ?>&item=<?= $itemID ?>" class="btn-msg">💬 Message Seller</a>
+          <a href="../pages/messages.php?with=<?= $item['sellerID'] ?>&item=<?= $itemID ?>" class="btn-msg">💬 Message Seller</a>
 
         <?php else: ?>
           <!-- Normal buyer actions -->
-          <form method="POST" action="/demys/api/transaction.php">
+          <form method="POST" action="../pages/transaction.php">
             <input type="hidden" name="itemID"  value="<?= $itemID ?>"/>
             <input type="hidden" name="action"  value="buy"/>
             <input type="hidden" name="csrf"    value="<?= h($csrf) ?>"/>
             <button type="submit" class="btn-buy">💳 Buy Now — <?= formatPrice((float)$item['price']) ?></button>
           </form>
-          <form method="POST" action="/demys/api/transaction.php" id="offerForm">
+          <form method="POST" action="../pages/transaction.php" id="offerForm">
             <input type="hidden" name="itemID"  value="<?= $itemID ?>"/>
             <input type="hidden" name="action"  value="offer"/>
             <input type="hidden" name="csrf"    value="<?= h($csrf) ?>"/>
@@ -336,8 +321,8 @@ require_once __DIR__ . '/../../includes/header.php';
             </div>
           </form>
           <div class="action-row">
-            <a href="/demys/pages/messages.php?with=<?= $item['sellerID'] ?>&item=<?= $itemID ?>" class="btn-msg">💬 Message Seller</a>
-            <form method="POST" action="/demys/api/wishlist.php" style="margin:0">
+            <a href="../pages/messages.php?with=<?= $item['sellerID'] ?>&item=<?= $itemID ?>" class="btn-msg">💬 Message Seller</a>
+            <form method="POST" action="../config/wishlist.php" style="margin:0">
               <input type="hidden" name="itemID"  value="<?= $itemID ?>"/>
               <input type="hidden" name="action"  value="<?= $isWished ? 'remove' : 'add' ?>"/>
               <input type="hidden" name="csrf"    value="<?= h($csrf) ?>"/>
@@ -383,7 +368,7 @@ require_once __DIR__ . '/../../includes/header.php';
     <!-- Write a review -->
     <div class="review-form-card">
       <h3>Leave a Review</h3>
-      <form method="POST" action="/demys/api/review.php">
+      <form method="POST" action="../config/reviews.php">
         <input type="hidden" name="itemID" value="<?= $itemID ?>"/>
         <input type="hidden" name="csrf"   value="<?= h($csrf) ?>"/>
         <input type="hidden" name="rating" id="ratingInput" value="0"/>
@@ -430,11 +415,11 @@ require_once __DIR__ . '/../../includes/header.php';
   <div class="section-wrap">
     <div class="section-header">
       <h2 class="section-title">More in <?= h($item['category_name']) ?></h2>
-      <a href="/demys/pages/search.php?cat=<?= $item['categoryID'] ?>" class="section-link">Browse all →</a>
+      <a href="../pages/search.php?cat=<?= $item['categoryID'] ?>" class="section-link">Browse all →</a>
     </div>
     <div class="grid-4">
       <?php foreach ($moreItems as $mi): ?>
-      <a href="/demys/pages/item.php?id=<?= $mi['itemID'] ?>" class="item-card">
+      <a href="../pages/item.php?id=<?= $mi['itemID'] ?>" class="item-card">
         <div class="item-card-img">
           <img src="<?= $mi['thumb'] ? h($mi['thumb']) : 'https://placehold.co/400x300/e8e6df/9b9891?text=No+Image' ?>"
                alt="<?= h($mi['title']) ?>" loading="lazy"/>
@@ -549,4 +534,4 @@ function setRating(n) {
 })();
 </script>
 
-<?php require_once __DIR__ . '/../../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

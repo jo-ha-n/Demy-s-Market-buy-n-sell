@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         setFlash('success', 'Listing posted successfully!');
-        header("Location: /demys/pages/item.php?id={$newItemID}"); exit;
+        header("Location: ../pages/item.php?id={$newItemID}"); exit;
     }
 }
 
@@ -123,7 +123,7 @@ require_once __DIR__ . '/../includes/header.php';
 
         <div style="display:flex;gap:12px;margin-top:8px">
           <button type="submit" class="btn-accent btn-lg" style="flex:1">Post Listing</button>
-          <a href="/demys/index.html" class="btn-ghost btn-lg">Cancel</a>
+          <a href="../index.html" class="btn-ghost btn-lg">Cancel</a>
         </div>
       </form>
     </div>
