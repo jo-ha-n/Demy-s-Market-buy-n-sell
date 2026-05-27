@@ -71,6 +71,7 @@ $jsTransactions = json_encode($transactions, JSON_HEX_TAG);
 $jsCategories   = json_encode($categories,   JSON_HEX_TAG);
 $jsTags         = json_encode($tags,         JSON_HEX_TAG);
 ?>
+
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -79,8 +80,8 @@ $jsTags         = json_encode($tags,         JSON_HEX_TAG);
   <title>Admin — Demy's</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../assets/css/main.css"/>
-  <link rel="stylesheet" href="../assets/css/admin.css"/>
+  <link rel="stylesheet" href="../../assets/css/main.css"/>
+  <link rel="stylesheet" href="../../assets/css/admin.css"/>
   <script>
     (function(){
       try {
@@ -90,9 +91,7 @@ $jsTags         = json_encode($tags,         JSON_HEX_TAG);
     })();
   </script>
 </head>
-<body>
-
-<!-- TOPBAR -->
+<body><!-- TOPBAR -->
 <header class="topbar">
   <a href="#" class="topbar-logo">Demy's</a>
   <span class="topbar-title">Admin Panel</span>
