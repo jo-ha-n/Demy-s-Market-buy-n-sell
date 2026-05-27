@@ -313,7 +313,6 @@ function buildQuery(array $overrides = []): string
 
 <!-- ════════════════════════════ PAGE LAYOUT ════════════════════════════ -->
 <div class="container">
-  <?php var_dump($geoLabels); ?>
   <div class="section" style="max-width:1200px;margin:0 auto;display:flex;gap:24px">
 
     <!-- ─── Filters sidebar ─── -->
@@ -484,7 +483,7 @@ function buildQuery(array $overrides = []): string
       <?php else: ?>
         <div class="grid-4">
           <?php foreach ($items as $key => $item): ?>
-            <a class="card item-card" href="../templates/item.html?id=<?= h($item['itemID']) ?>">
+            <a class="card item-card" href="../pages/item.php?id=<?= h($item['itemID']) ?>">
               <?php if (!empty($item['image'])): ?>
                 <div class="item-card-img-wrap">
                   <img class="item-card-img"
