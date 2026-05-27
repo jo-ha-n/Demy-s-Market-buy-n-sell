@@ -22,7 +22,7 @@ function clearSession() {
 async function fetchAuthCsrf() {
   if (window.authCsrfToken) return window.authCsrfToken;
   try {
-    const res = await fetch('../pages/login.php?ajax=1');
+    const res = await fetch('../src/pages/login.php?ajax=1');
     const data = await res.json();
     window.authCsrfToken = data.csrfToken;
     window.authUser = data.user || null;
@@ -32,8 +32,7 @@ async function fetchAuthCsrf() {
   }
 }
 
-// initAuthState removed — it caused PHP session to re-hydrate localStorage
-// after logout, making the logged-out state impossible to maintain.
+// initAuthState removed — caused PHP session to re-hydrate localStorage after logout.
 
 function openAuthOverlay(mode = 'login') {
   const overlay = document.getElementById('authOverlay');
@@ -85,8 +84,8 @@ async function submitAuthForm(event, mode) {
   if (!form) return;
 
   const url = mode === 'login'
-    ? '../pages/login.php?ajax=1'
-    : '../pages/register.php?ajax=1';
+    ? '../src/pages/login.php?ajax=1'
+    : '../src/pages/register.php?ajax=1';
 
   const data = new FormData(form);
   data.append('ajax', '1');
@@ -313,8 +312,9 @@ document.getElementById('profileBtn')?.addEventListener('click', e => {
 
 // ── Init nav on HTML pages ────────────────────────────────────────────────────
 // localStorage is the single source of truth for the JS nav.
-// login.php passes ?session=<json> so we can hydrate localStorage after redirect.
-// logOut() and logout.php pass ?loggedout=1 so we know to clear it.
+// login.php     → ?session=<json>
+// register.php  → ?session=<json>&welcome=1
+// logOut()      → ?loggedout=1
 (function () {
   const params = new URLSearchParams(window.location.search);
   if (params.get('loggedout') === '1') {
@@ -324,12 +324,14 @@ document.getElementById('profileBtn')?.addEventListener('click', e => {
       const user = JSON.parse(decodeURIComponent(params.get('session')));
       if (user && user.userID) {
         setSession(user);
-        showFlash('success', 'Welcome back, ' + user.username + '!');
+        const msg = params.get('welcome') === '1'
+          ? "Welcome to Demy’s, " + user.username + "!"
+          : "Welcome back, " + user.username + "!";
+        showFlash('success', msg);
       }
     } catch (e) {}
   }
   renderTopbarNav();
-  // Clean URL so refresh doesn't re-trigger
   if (params.get('loggedout') || params.get('session')) {
     window.history.replaceState(null, '', window.location.pathname);
   }

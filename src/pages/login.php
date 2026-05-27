@@ -227,7 +227,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="login-field">
           <label class="login-label">Username or Email</label>
           <input type="email" name="email" class="login-input" placeholder="you@example.com"
-                value="<?= h($_POST['email'] ?? '') ?>" required/>
+                 value="<?= h($_POST['email'] ?? '') ?>" required/>
         </div>
         <div class="login-field">
           <label class="login-label">Password</label>
