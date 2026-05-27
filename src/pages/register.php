@@ -34,6 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hash = password_hash($password, PASSWORD_BCRYPT);
         $stmt = $db->prepare('INSERT INTO Users (email,username,password,role) VALUES (?,?,?,?)');
         $stmt->bind_param('ssss', $email, $username, $hash, $role);
+        // Save coordinates if provided
+        $lat = isset($_POST['lat']) ? (float)$_POST['lat'] : null;
+        $lng = isset($_POST['lng']) ? (float)$_POST['lng'] : null;
+        if ($lat !== null && $lng !== null && $lat >= -90 && $lat <= 90 && $lng >= -180 && $lng <= 180) {
+            $newUserID = $db->insert_id;
+            $coordStmt = $db->prepare(
+                "UPDATE Users SET coordinates = ST_GeomFromText(?) WHERE userID = ?"
+            );
+            $wkt = "POINT({$lng} {$lat})"; // MySQL POINT is (lng lat) / (X Y)
+            $coordStmt->bind_param('si', $wkt, $newUserID);
+            $coordStmt->execute();
+        }
         if ($stmt->execute()) {
             $_SESSION['userID'] = $db->insert_id;
             $user = ['userID' => $db->insert_id, 'username' => $username, 'role' => $role];
@@ -187,6 +199,78 @@ select.rinput { appearance:none; cursor:pointer; }
   .reg-form-panel{padding:36px 28px;}
 }
 @media(max-width:480px){ .reg-row{grid-template-columns:1fr;} }
+
+/* Location picker */
+.loc-field { margin-bottom: 16px; }
+.loc-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); display:block; margin-bottom:6px; }
+.loc-trigger {
+  width:100%; padding:10px 13px;
+  background:var(--bg); border:1.5px solid var(--border);
+  border-radius:var(--radius); font-size:14px; color:var(--text);
+  font-family:'DM Sans',sans-serif; cursor:pointer; text-align:left;
+  display:flex; align-items:center; gap:9px;
+  transition:border-color 0.2s, background 0.2s;
+}
+.loc-trigger:hover { border-color:var(--border2); background:var(--surface); }
+.loc-trigger.has-location { border-color:var(--accent); color:var(--accent); }
+.loc-trigger svg { flex-shrink:0; opacity:0.6; }
+.loc-trigger.has-location svg { opacity:1; }
+
+.loc-modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.6);
+  z-index:9999; display:flex; align-items:center; justify-content:center;
+  padding:20px; opacity:0; pointer-events:none;
+  transition:opacity 0.25s;
+}
+.loc-modal-overlay.open { opacity:1; pointer-events:all; }
+
+.loc-modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; width:100%; max-width:560px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.3);
+  overflow:hidden; transform:translateY(12px) scale(0.98);
+  transition:transform 0.25s cubic-bezier(0.16,1,0.3,1);
+}
+.loc-modal-overlay.open .loc-modal { transform:translateY(0) scale(1); }
+
+.loc-modal-header {
+  padding:16px 20px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.loc-modal-title { font-family:'Syne',sans-serif; font-weight:800; font-size:16px; color:var(--text); }
+.loc-modal-close {
+  background:none; border:none; cursor:pointer; color:var(--muted);
+  padding:4px; border-radius:6px; line-height:1;
+  transition:color 0.15s, background 0.15s;
+}
+.loc-modal-close:hover { color:var(--text); background:var(--bg); }
+
+#loc-map { width:100%; height:300px; }
+
+.loc-modal-footer {
+  padding:14px 20px; border-top:1px solid var(--border);
+  display:flex; align-items:center; gap:10px;
+}
+.loc-coords-display {
+  flex:1; font-size:12px; color:var(--muted);
+  font-family:'DM Mono', monospace;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.loc-use-btn {
+  padding:9px 20px; background:var(--accent); color:#fff;
+  border:none; border-radius:var(--radius); font-size:13px;
+  font-weight:700; font-family:'Syne',sans-serif; cursor:pointer;
+  transition:background 0.2s; white-space:nowrap; flex-shrink:0;
+}
+.loc-use-btn:hover { background:var(--accent-h); }
+.loc-use-btn:disabled { opacity:0.45; cursor:not-allowed; }
+.loc-gps-btn {
+  padding:9px 14px; background:var(--bg); color:var(--text);
+  border:1.5px solid var(--border); border-radius:var(--radius);
+  font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px;
+  transition:border-color 0.2s, background 0.2s; flex-shrink:0;
+}
+.loc-gps-btn:hover { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
 </style>
 <link rel="stylesheet" href="../assets/css/main.css"/>
 <div class="reg-wrap">
@@ -284,7 +368,45 @@ select.rinput { appearance:none; cursor:pointer; }
             </div>
           </div>
         </div>
+        <!-- Location picker -->
+        <input type="hidden" name="lat" id="loc-lat" />
+        <input type="hidden" name="lng" id="loc-lng" />
 
+        <div class="loc-field">
+          <label class="loc-label">Your Location <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label>
+          <button type="button" class="loc-trigger" id="loc-open-btn">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span id="loc-btn-text">Set your location on map</span>
+          </button>
+        </div>
+
+        <!-- Map modal -->
+        <div class="loc-modal-overlay" id="loc-overlay">
+          <div class="loc-modal">
+            <div class="loc-modal-header">
+              <span class="loc-modal-title">📍 Set your location</span>
+              <button type="button" class="loc-modal-close" id="loc-close-btn">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div id="loc-map"></div>
+            <div class="loc-modal-footer">
+              <button type="button" class="loc-gps-btn" id="loc-gps-btn">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>
+                  <circle cx="12" cy="12" r="8" stroke-dasharray="2 3"/>
+                </svg>
+                Use GPS
+              </button>
+              <span class="loc-coords-display" id="loc-coords-text">Click the map to drop a pin</span>
+              <button type="button" class="loc-use-btn" id="loc-confirm-btn" disabled>Use this location</button>
+            </div>
+          </div>
+        </div>
         <button type="submit" class="reg-submit">Create Account</button>
       </form>
 
@@ -293,5 +415,160 @@ select.rinput { appearance:none; cursor:pointer; }
 
   </div>
 </div>
+
+<script>
+(function () {
+  const overlay    = document.getElementById('loc-overlay');
+  const openBtn    = document.getElementById('loc-open-btn');
+  const closeBtn   = document.getElementById('loc-close-btn');
+  const gpsBtn     = document.getElementById('loc-gps-btn');
+  const confirmBtn = document.getElementById('loc-confirm-btn');
+  const coordsText = document.getElementById('loc-coords-text');
+  const btnText    = document.getElementById('loc-btn-text');
+  const latInput   = document.getElementById('loc-lat');
+  const lngInput   = document.getElementById('loc-lng');
+
+  let map, marker, pendingLat = null, pendingLng = null;
+
+  function initMap() {
+    if (map) return;
+    // Default center: Philippines
+    map = L.map('loc-map').setView([12.8797, 121.7740], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Custom accent-colored pin icon
+    const pinIcon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:28px;height:28px;background:var(--accent);border:3px solid #fff;
+        border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+        box-shadow:0 3px 12px rgba(232,65,10,0.5);
+      "></div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+    });
+
+    map.on('click', function (e) {
+      const { lat, lng } = e.latlng;
+      setPin(lat, lng);
+    });
+
+    // Fix Leaflet tile render when modal opens
+    setTimeout(() => map.invalidateSize(), 10);
+  }
+
+  function setPin(lat, lng) {
+    pendingLat = lat.toFixed(6);
+    pendingLng = lng.toFixed(6);
+
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+    } else {
+      const pinIcon = L.divIcon({
+        className: '',
+        html: `<div style="
+          width:26px;height:26px;background:var(--accent,#e8410a);border:3px solid #fff;
+          border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+          box-shadow:0 3px 14px rgba(232,65,10,0.55);
+        "></div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 26],
+      });
+      marker = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(map);
+      marker.on('dragend', function () {
+        const pos = marker.getLatLng();
+        setPin(pos.lat, pos.lng);
+      });
+    }
+
+    coordsText.textContent = `${pendingLat}, ${pendingLng}`;
+    confirmBtn.disabled = false;
+  }
+
+  function openModal() {
+    overlay.classList.add('open');
+    initMap();
+    document.body.style.overflow = 'hidden';
+
+    // If coords already saved, re-show pin and stop
+    if (latInput.value && lngInput.value) {
+      const lat = parseFloat(latInput.value);
+      const lng = parseFloat(lngInput.value);
+      map.setView([lat, lng], 15);
+      setPin(lat, lng);
+      return;
+    }
+
+    // Auto-request GPS on open
+    if (navigator.geolocation) {
+      gpsBtn.innerHTML = 'Locating…';
+      gpsBtn.disabled = true;
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          map.setView([lat, lng], 15);
+          setPin(lat, lng);
+          gpsBtn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 3"/></svg> Use GPS`;
+          gpsBtn.disabled = false;
+        },
+        function () {
+          // Silently fall back — user can click manually
+          gpsBtn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 3"/></svg> Use GPS`;
+          gpsBtn.disabled = false;
+        },
+        { timeout: 8000 }
+      );
+    }
+  }
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) closeModal();
+  });
+
+  gpsBtn.addEventListener('click', function () {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    gpsBtn.textContent = 'Locating…';
+    gpsBtn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        map.setView([lat, lng], 15);
+        setPin(lat, lng);
+        gpsBtn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 3"/></svg> Use GPS`;
+        gpsBtn.disabled = false;
+      },
+      function () {
+        alert('Could not get your location. Please click on the map instead.');
+        gpsBtn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 3"/></svg> Use GPS`;
+        gpsBtn.disabled = false;
+      }
+    );
+  });
+
+  confirmBtn.addEventListener('click', function () {
+    latInput.value = pendingLat;
+    lngInput.value = pendingLng;
+    openBtn.classList.add('has-location');
+    btnText.textContent = `📍 ${pendingLat}, ${pendingLng}`;
+    closeModal();
+  });
+})();
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
