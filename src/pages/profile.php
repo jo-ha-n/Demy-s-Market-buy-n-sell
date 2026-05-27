@@ -41,16 +41,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner) {
         if (empty($errors)) {
             if ($lat !== null && $lng !== null) {
                 // Save address + coordinates POINT
-                $upd = $db->prepare('UPDATE Users SET username=?, address=?, contact_number=?, coordinates=ST_GeomFromText(?) WHERE userID=?');
+                $upd = $db->prepare('UPDATE Users SET username=?, contact_number=?, coordinates=ST_GeomFromText(?) WHERE userID=?');
                 $point = "POINT($lng $lat)"; // WKT: X=lng, Y=lat
-                $upd->bind_param('ssssi', $username, $address, $contact, $point, $me['userID']);
+                $upd->bind_param('sssi', $username, $contact, $point, $me['userID']);
             } else {
-                $upd = $db->prepare('UPDATE Users SET username=?, address=?, contact_number=? WHERE userID=?');
-                $upd->bind_param('sssi', $username, $address, $contact, $me['userID']);
+                $upd = $db->prepare('UPDATE Users SET username=?, contact_number=?, coordinates=? WHERE userID=?');
+                $upd->bind_param('sssi', $username, $contact, $coordinates, $me['userID']);
             }
             $upd->execute();
             setFlash('success', 'Profile updated.');
-            header('Location: ../profile.php'); exit;
+            header('Location: ../pages/profile.php'); exit;
         }
     }
 
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner) {
             $upd->bind_param('si', $hash, $me['userID']);
             $upd->execute();
             setFlash('success', 'Password updated.');
-            header('Location: ../profile.php'); exit;
+            header('Location: ../pages/profile.php'); exit;
         }
     }
 
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner) {
         $upd->bind_param('si', $newRole, $me['userID']);
         $upd->execute();
         setFlash('info', "Switched to {$newRole} profile.");
-        header('Location: ../profile.php'); exit;
+        header('Location: ../pages/profile.php'); exit;
     }
 }
 
@@ -578,7 +578,6 @@ textarea.edit-input { resize:vertical; min-height:80px; }
   <form method="POST">
     <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>"/>
     <input type="hidden" name="action" value="profile"/>
-    
     <input type="hidden" name="coord_lat" id="coord-lat" value=""/>
     <input type="hidden" name="coord_lng" id="coord-lng" value=""/>
 
@@ -595,8 +594,7 @@ textarea.edit-input { resize:vertical; min-height:80px; }
       <div class="edit-field">
         <label class="edit-label">Address / City</label>
         <input type="text" name="address" id="address-input" class="edit-input" placeholder="e.g. Quezon City"
-              value="<?= h($me['address'] ?? '') ?>"/>
-        
+              value="<?= h($me['label'] ?? '') ?>"/>
         <button type="button" class="btn-pick-map" onclick="openMapPicker()">
           📍 Pick from Map
         </button>
@@ -841,7 +839,7 @@ textarea.edit-input { resize:vertical; min-height:80px; }
     btn.disabled = true;
     _pickedLabel = '';
 
-    fetch(`/src/api/reverse-geocode.php?lat=${lat}&lng=${lng}`)
+    fetch(`../api/reverse-geocode.php?lat=${lat}&lng=${lng}`)
       .then(r => r.json())
       .then(data => {
         if (data.label) {
