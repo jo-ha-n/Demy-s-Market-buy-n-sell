@@ -210,7 +210,7 @@ def init():
         mysql_connection.commit()
 
     mysql_connection.close()
-
+    print("Done!")
 
 if __name__ == "__main__":
     init()

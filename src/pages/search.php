@@ -29,108 +29,176 @@ $userLat      = is_numeric($_GET['lat']      ?? null) ? (float)$_GET['lat']     
 $userLng      = is_numeric($_GET['lng']      ?? null) ? (float)$_GET['lng']      : null;
 $userDist     = is_numeric($_GET['distance'] ?? null) ? (int)$_GET['distance']   : 25;
 
-/* ── WHERE clauses ── */
+$types  = '';          // bind_param type string
+$params = [];          // bind_param values (by reference below)
+
 $where = ["i.status = 'available'"];
 
+/* ── Keyword (the only user string — bind it) ── */
 if ($search !== '') {
-    $s       = $db->real_escape_string($search);
-    $where[] = "(
-      i.title LIKE '%{$s}%' OR i.description LIKE '%{$s}%'
-      OR i.description LIKE '%{$s}%'
-      OR i.address LIKE '%{$s}%'
-      )";
+    $where[] = "(i.title LIKE ? OR i.description LIKE ?)";
+    $like    = '%' . $search . '%';
+    $types  .= 'ss';
+    $params[] = $like;
+    $params[] = $like;
 }
+
+/* ── Category ── */
 if ($category > 0) {
-    $where[] = 'i.categoryID = ' . $category;
+    $where[] = 'i.categoryID = ' . $category;          // already cast to int
 }
+
+/* ── Tags ── */
 if (!empty($selectedTags)) {
-    $ids     = implode(',', $selectedTags);
-    $where[] = "EXISTS (SELECT 1 FROM Item_Tag it WHERE it.itemID = i.itemID AND it.tagID IN ({$ids}))";
+    $ids     = implode(',', $selectedTags);             // all ints — safe
+    $where[] = "EXISTS (
+                    SELECT 1 FROM Item_Tag it
+                    WHERE it.itemID = i.itemID
+                      AND it.tagID IN ({$ids}))";
 }
+
+/* ── Price range ── */
 if ($minPrice !== null) {
-    $where[] = 'i.price >= ' . $db->real_escape_string((string)$minPrice);
+    $where[]  = 'i.price >= ?';
+    $types   .= 'd';
+    $params[] = $minPrice;
 }
 if ($maxPrice !== null) {
-    $where[] = 'i.price <= ' . $db->real_escape_string((string)$maxPrice);
+    $where[]  = 'i.price <= ?';
+    $types   .= 'd';
+    $params[] = $maxPrice;
 }
+
+/* ── Has image ── */
 if ($hasImage) {
     $where[] = "EXISTS (SELECT 1 FROM Image im WHERE im.itemID = i.itemID)";
 }
-// Haversine distance filter — requires i.latitude & i.longitude columns on Item
+
+/* ── Location: filter by SELLER coordinates (Users.coordinates POINT)
+      Haversine in km using ST_X / ST_Y to unpack the POINT column.
+      ST_X = longitude, ST_Y = latitude in MySQL's default axis order.  ── */
 if ($userLat !== null && $userLng !== null) {
-    $where[] = "(
+    $where[]  = "(
         6371 * ACOS(
             GREATEST(-1, LEAST(1,
-                COS(RADIANS({$userLat})) * COS(RADIANS(i.latitude)) *
-                COS(RADIANS(i.longitude) - RADIANS({$userLng})) +
-                SIN(RADIANS({$userLat})) * SIN(RADIANS(i.latitude))
+                COS(RADIANS(?)) * COS(RADIANS(ST_Y(u.coordinates))) *
+                COS(RADIANS(ST_X(u.coordinates)) - RADIANS(?)) +
+                SIN(RADIANS(?)) * SIN(RADIANS(ST_Y(u.coordinates)))
             ))
         )
-    ) <= {$userDist}";
+    ) <= ?";
+    $types   .= 'dddi';
+    $params[] = $userLat;
+    $params[] = $userLng;
+    $params[] = $userLat;
+    $params[] = $userDist;
+
+    /* Also exclude sellers who have no coordinates set */
+    $where[] = "u.coordinates IS NOT NULL";
 }
 
 /* ── ORDER BY ── */
 switch ($sort) {
     case 'price_asc':  $order = 'i.price ASC';       break;
-    case 'price_desc': $order = 'i.price DESC';      break;
-    default:           $order = 'i.created_at DESC'; break;
+    case 'price_desc': $order = 'i.price DESC';       break;
+    default:           $order = 'i.created_at DESC';  break;
 }
 
-/* ── Pagination ── */
-$whereSql    = implode(' AND ', $where);
-$countResult = $db->query("
+$whereSql = implode(' AND ', $where);
+
+/* ── Helper: bind & execute a prepared statement ── */
+function runStmt(mysqli $db, string $sql, string $types, array $params): mysqli_result|bool
+{
+    if ($types === '') {
+        // No user-supplied params — plain query is fine
+        return $db->query($sql);
+    }
+    $stmt = $db->prepare($sql);
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    return $stmt->get_result();
+}
+
+/* ── COUNT for pagination ── */
+$countSql    = "
     SELECT COUNT(*) AS total
     FROM Item i
-    LEFT JOIN Users u ON u.userID = i.sellerID
-    WHERE {$whereSql}
-");
+    JOIN Users u ON u.userID = i.sellerID
+    WHERE {$whereSql}";
+$countResult = runStmt($db, $countSql, $types, $params);
 $total       = $countResult ? (int)$countResult->fetch_assoc()['total'] : 0;
 $totalPages  = max(1, (int)ceil($total / $limit));
 $page        = min($page, $totalPages);
 $offset      = ($page - 1) * $limit;
 
 /* ── Main query ── */
-$sql = "SELECT i.*, c.category_name, im.images AS image
-        FROM Item i
-        LEFT JOIN Users u ON u.userID = i.sellerID
-        LEFT JOIN Category c ON c.categoryID = i.categoryID
-        LEFT JOIN (
-            SELECT itemID, images
-            FROM Image
-            WHERE imageID IN (SELECT MIN(imageID) FROM Image GROUP BY itemID)
-        ) im ON im.itemID = i.itemID
-        WHERE {$whereSql}
-        ORDER BY {$order}
-        LIMIT {$limit} OFFSET {$offset}";
-$result = $db->query($sql);
-$items  = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+$mainSql = "
+    SELECT
+        i.*,
+        c.category_name,
+        im.images AS image,
+        /* Expose seller coordinates as plain floats for JS if needed */
+        ST_Y(u.coordinates) AS seller_lat,
+        ST_X(u.coordinates) AS seller_lng
+    FROM Item i
+    JOIN Users u ON u.userID = i.sellerID
+    LEFT JOIN Category c ON c.categoryID = i.categoryID
+    LEFT JOIN (
+        SELECT itemID, images
+        FROM Image
+        WHERE imageID IN (SELECT MIN(imageID) FROM Image GROUP BY itemID)
+    ) im ON im.itemID = i.itemID
+    WHERE {$whereSql}
+    ORDER BY {$order}
+    LIMIT {$limit} OFFSET {$offset}";
+
+/* Append LIMIT/OFFSET params */
+$mainTypes  = $types;
+$mainParams = $params;
+$result       = runStmt($db, $mainSql, $mainTypes, $mainParams);
+$items        = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+$geoLabels = reverseGeocodeMany($items);
+
 
 /* ── Page setup ── */
 $pageTitle = "Browse — Demy's";
 require_once __DIR__ . '/../includes/header.php';
 
-/* ── URL helper ── */
-function buildQuery(array $overrides = []): string {
-    $params = array_filter([
-        'q'         => ($overrides['q']        ?? $_GET['q']        ?? ''),
-        'category'  => ($overrides['category'] ?? $_GET['category'] ?? ''),
-        'sort'      => ($overrides['sort']      ?? $_GET['sort']     ?? ''),
-        'page'      => ($overrides['page']      ?? $_GET['page']     ?? ''),
-        'tags'      => ($overrides['tags']      ?? $_GET['tags']     ?? ''),
-        'min_price' => ($overrides['min_price'] ?? $_GET['min_price'] ?? ''),
-        'max_price' => ($overrides['max_price'] ?? $_GET['max_price'] ?? ''),
-        'has_image' => ($overrides['has_image'] ?? $_GET['has_image'] ?? ''),
-        'lat'       => ($overrides['lat']       ?? $_GET['lat']      ?? ''),
-        'lng'       => ($overrides['lng']       ?? $_GET['lng']      ?? ''),
-        'distance'  => ($overrides['distance']  ?? $_GET['distance'] ?? ''),
-    ], fn($v) => $v !== '' && $v !== null && $v !== []);
-    return http_build_query($params);
+/* ── URL helper ──
+   Correctly handles tags[] arrays so pagination preserves tag filters. ── */
+function buildQuery(array $overrides = []): string
+{
+    // Start from current GET params, apply overrides
+    $base = array_merge($_GET, $overrides);
+
+    // Reset page to 1 for everything except explicit page overrides
+    if (!isset($overrides['page'])) {
+        unset($base['page']);
+    }
+
+    // Remove empty scalars; keep arrays (tags)
+    $clean = [];
+    foreach ($base as $k => $v) {
+        if (is_array($v)) {
+            $filtered = array_filter($v, fn($x) => $x !== '' && $x !== null);
+            if (!empty($filtered)) {
+                $clean[$k] = array_values($filtered);
+            }
+        } elseif ($v !== '' && $v !== null) {
+            $clean[$k] = $v;
+        }
+    }
+
+    return http_build_query($clean);
 }
 ?>
 
 <!-- ═══════════════════════════ LEAFLET CDN ═══════════════════════════ -->
-<link  rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLs=" crossorigin=""></script>
 
@@ -177,11 +245,21 @@ function buildQuery(array $overrides = []): string {
   #leafletMap { height: 360px; width: 100%; flex-shrink: 0; }
 
   #locationModal footer {
-    display: flex; justify-content: flex-end; gap: 8px;
+    display: flex; justify-content: space-between; align-items: center;
     padding: 12px 18px;
     border-top: 1px solid #e8e8e8;
     flex-shrink: 0;
   }
+  /* Clear location button (left side of modal footer) */
+  .map-btn-clear {
+    padding: 8px 14px; background: none;
+    border: 1px solid #e0444466; border-radius: 6px;
+    cursor: pointer; font-size: 13px; color: #c0392b;
+    display: <?= ($userLat !== null) ? 'inline-flex' : 'none' ?>;
+    align-items: center; gap: 5px;
+  }
+  .map-btn-clear:hover { background: #fdf2f2; }
+  .map-footer-right { display: flex; gap: 8px; }
   .map-btn-cancel {
     padding: 8px 16px; background: none;
     border: 1px solid #ccc; border-radius: 6px;
@@ -235,6 +313,7 @@ function buildQuery(array $overrides = []): string {
 
 <!-- ════════════════════════════ PAGE LAYOUT ════════════════════════════ -->
 <div class="container">
+  <?php var_dump($geoLabels); ?>
   <div class="section" style="max-width:1200px;margin:0 auto;display:flex;gap:24px">
 
     <!-- ─── Filters sidebar ─── -->
@@ -245,17 +324,17 @@ function buildQuery(array $overrides = []): string {
         <form id="filtersForm" action="search.php" method="GET">
 
           <!-- Preserves sort when form submits -->
-          <input type="hidden" name="sort"     id="sortHidden" value="<?= h($sort) ?>" />
+          <input type="hidden" name="sort"     id="sortHidden"  value="<?= h($sort) ?>" />
           <!-- Location hidden inputs — populated by JS on confirm -->
-          <input type="hidden" name="lat"      id="latInput"   value="<?= h($_GET['lat'] ?? '') ?>" />
-          <input type="hidden" name="lng"      id="lngInput"   value="<?= h($_GET['lng'] ?? '') ?>" />
-          <input type="hidden" name="distance" id="distInput"  value="<?= h($_GET['distance'] ?? '') ?>" />
+          <input type="hidden" name="lat"      id="latInput"    value="<?= h($_GET['lat']      ?? '') ?>" />
+          <input type="hidden" name="lng"      id="lngInput"    value="<?= h($_GET['lng']      ?? '') ?>" />
+          <input type="hidden" name="distance" id="distInput"   value="<?= h($_GET['distance'] ?? '') ?>" />
 
           <!-- Keyword -->
           <div style="margin-bottom:12px">
             <label class="form-label">Keyword</label>
             <input type="text" name="q" class="form-control"
-                    value="<?= h($search) ?>" placeholder="Search listings…" />
+                   value="<?= h($search) ?>" placeholder="Search listings…" />
           </div>
 
           <!-- Category -->
@@ -279,8 +358,8 @@ function buildQuery(array $overrides = []): string {
               <?php foreach ($tags as $t): ?>
                 <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                   <input type="checkbox" name="tags[]"
-                          value="<?= h($t['tagID']) ?>"
-                          <?= in_array((int)$t['tagID'], $selectedTags) ? 'checked' : '' ?> />
+                         value="<?= h($t['tagID']) ?>"
+                         <?= in_array((int)$t['tagID'], $selectedTags) ? 'checked' : '' ?> />
                   <?= h($t['name']) ?>
                 </label>
               <?php endforeach; ?>
@@ -292,13 +371,13 @@ function buildQuery(array $overrides = []): string {
             <label class="form-label">Price range</label>
             <div style="display:flex;gap:8px">
               <input type="number" name="min_price" class="form-control"
-                      placeholder="Min" step="0.01"
-                      value="<?= h($minPrice ?? '') ?>"
-                      min="<?= h($globalMin) ?>" />
+                     placeholder="Min" step="0.01"
+                     value="<?= h($minPrice ?? '') ?>"
+                     min="<?= h($globalMin) ?>" />
               <input type="number" name="max_price" class="form-control"
-                      placeholder="Max" step="0.01"
-                      value="<?= h($maxPrice ?? '') ?>"
-                      max="<?= h($globalMax) ?>" />
+                     placeholder="Max" step="0.01"
+                     value="<?= h($maxPrice ?? '') ?>"
+                     max="<?= h($globalMax) ?>" />
             </div>
             <div style="font-size:12px;color:var(--muted);margin-top:6px">
               Range: <?= formatPrice($globalMin) ?> — <?= formatPrice($globalMax) ?>
@@ -309,7 +388,7 @@ function buildQuery(array $overrides = []): string {
           <div style="margin-bottom:14px">
             <label style="display:flex;align-items:center;gap:8px">
               <input type="checkbox" name="has_image" value="1"
-                      <?= $hasImage ? 'checked' : '' ?> />
+                     <?= $hasImage ? 'checked' : '' ?> />
               Has photo
             </label>
           </div>
@@ -322,7 +401,7 @@ function buildQuery(array $overrides = []): string {
                     class="loc-picker-btn <?= ($userLat !== null) ? 'is-set' : '' ?>"
                     onclick="openLocationMap()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" aria-hidden="true">
+                   stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="10" r="3"/>
                 <path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 13-8 13S4 15.25 4 10a8 8 0 0 1 8-8z"/>
               </svg>
@@ -333,14 +412,12 @@ function buildQuery(array $overrides = []): string {
 
             <div class="loc-pill <?= ($userLat !== null) ? 'visible' : '' ?>" id="locPill">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                   stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                 <circle cx="12" cy="10" r="3"/>
                 <path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 13-8 13S4 15.25 4 10a8 8 0 0 1 8-8z"/>
               </svg>
               <span id="locCoords">
-                <?= ($userLat !== null)
-                    ? number_format($userLat, 4) . ', ' . number_format($userLng, 4)
-                    : '' ?>
+                <?= ($userLat !== null) ?  reverseGeocode($userLat, $userLng) : '' ?>
               </span>
             </div>
           </div>
@@ -350,9 +427,9 @@ function buildQuery(array $overrides = []): string {
             <label class="form-label">Distance</label>
             <div class="dist-range-row">
               <input type="range" id="distSlider"
-                      min="1" max="100" step="1"
-                      value="<?= h($userDist) ?>"
-                      oninput="syncDist(this.value)" />
+                     min="1" max="100" step="1"
+                     value="<?= h($userDist) ?>"
+                     oninput="syncDist(this.value)" />
               <span class="dist-val" id="distLabel"><?= h($userDist) ?> km</span>
             </div>
           </div>
@@ -371,7 +448,7 @@ function buildQuery(array $overrides = []): string {
     <div style="flex:1">
       <div class="search-results-inner">
         <div class="section-header"
-              tyle="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+             style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div>
             <h1 class="section-title">Browse listings</h1>
             <p class="section-count">
@@ -406,19 +483,19 @@ function buildQuery(array $overrides = []): string {
         </div>
       <?php else: ?>
         <div class="grid-4">
-          <?php foreach ($items as $item): ?>
+          <?php foreach ($items as $key => $item): ?>
             <a class="card item-card" href="../templates/item.html?id=<?= h($item['itemID']) ?>">
               <?php if (!empty($item['image'])): ?>
                 <div class="item-card-img-wrap">
                   <img class="item-card-img"
-                        src="<?= BASE_URL ?>/<?= h($item['image']) ?>"
-                        alt="<?= h($item['title']) ?>"
-                        loading="lazy" />
+                       src="<?= BASE_URL ?>/<?= h($item['image']) ?>"
+                       alt="<?= h($item['title']) ?>"
+                       loading="lazy" />
                 </div>
               <?php else: ?>
                 <div class="item-card-img-wrap">
                   <div class="item-card-img"
-                        style="display:flex;align-items:center;justify-content:center;
+                       style="display:flex;align-items:center;justify-content:center;
                               font-size:40px;background:var(--surface2)">📦</div>
                 </div>
               <?php endif; ?>
@@ -427,7 +504,9 @@ function buildQuery(array $overrides = []): string {
                 <p class="item-card-price"><?= formatPrice((float)$item['price']) ?></p>
                 <div class="item-card-meta">
                   <?= h($item['category_name'] ?? 'Uncategorized') ?>
-                  <?= $item['address'] ? '&middot; ' . h($item['address']) : '' ?>
+                  <?php if (!empty($geoLabels[$key])): ?>
+                    &middot; <?= h($geoLabels[$key]) ?>
+                  <?php endif; ?>
                 </div>
               </div>
             </a>
@@ -440,17 +519,35 @@ function buildQuery(array $overrides = []): string {
         <div class="pagination" style="justify-content:center;margin-top:28px">
           <?php if ($page > 1): ?>
             <a class="pagination-link"
-                href="search.php?<?= buildQuery(['page' => $page - 1]) ?>">‹ Previous</a>
+               href="search.php?<?= buildQuery(['page' => $page - 1]) ?>">‹ Previous</a>
           <?php endif; ?>
 
-          <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+          <?php
+          /* Show a sensible window of page numbers rather than all of them */
+          $window = 2;
+          $first  = max(1, $page - $window);
+          $last   = min($totalPages, $page + $window);
+          if ($first > 1): ?>
+            <a class="pagination-link" href="search.php?<?= buildQuery(['page' => 1]) ?>">1</a>
+            <?php if ($first > 2): ?><span class="pagination-ellipsis">…</span><?php endif; ?>
+          <?php endif; ?>
+
+          <?php for ($i = $first; $i <= $last; $i++): ?>
             <a class="pagination-link<?= $i === $page ? ' active' : '' ?>"
-                href="search.php?<?= buildQuery(['page' => $i]) ?>"><?= $i ?></a>
+               href="search.php?<?= buildQuery(['page' => $i]) ?>"><?= $i ?></a>
           <?php endfor; ?>
+
+          <?php if ($last < $totalPages): ?>
+            <?php if ($last < $totalPages - 1): ?>
+              <span class="pagination-ellipsis">…</span>
+            <?php endif; ?>
+            <a class="pagination-link"
+               href="search.php?<?= buildQuery(['page' => $totalPages]) ?>"><?= $totalPages ?></a>
+          <?php endif; ?>
 
           <?php if ($page < $totalPages): ?>
             <a class="pagination-link"
-                href="search.php?<?= buildQuery(['page' => $page + 1]) ?>">Next ›</a>
+               href="search.php?<?= buildQuery(['page' => $page + 1]) ?>">Next ›</a>
           <?php endif; ?>
         </div>
       <?php endif; ?>
@@ -468,14 +565,24 @@ function buildQuery(array $overrides = []): string {
               onclick="closeLocationMap()" aria-label="Close map">×</button>
     </header>
     <div class="map-hint">
-      Drag the pin to set your exact location, or click anywhere on the map to move it there.
+      Drag the pin to your location, or click anywhere on the map to move it there.
     </div>
     <div id="leafletMap"></div>
     <footer>
-      <button class="map-btn-cancel" type="button" onclick="closeLocationMap()">Cancel</button>
-      <button class="map-btn-confirm" type="button" onclick="confirmLocation()">
-        Use this location
+      <!-- Clear location: strips lat/lng from the query and resubmits -->
+      <button class="map-btn-clear" type="button" id="clearLocBtn" onclick="clearLocation()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Clear location
       </button>
+      <div class="map-footer-right">
+        <button class="map-btn-cancel" type="button" onclick="closeLocationMap()">Cancel</button>
+        <button class="map-btn-confirm" type="button" onclick="confirmLocation()">
+          Use this location
+        </button>
+      </div>
     </footer>
   </div>
 </div>
@@ -491,22 +598,20 @@ function buildQuery(array $overrides = []): string {
   var _lat    = <?= json_encode($userLat) ?>;
   var _lng    = <?= json_encode($userLng) ?>;
 
-  // Manila as the default fallback (adjust to your app's region)
-  var DEFAULT_LAT = 14.5995;
-  var DEFAULT_LNG = 120.9842;
+  // Default centre: Bacoor, Cavite (adjust to your region)
+  var DEFAULT_LAT  = 14.4624;
+  var DEFAULT_LNG  = 120.9645;
   var DEFAULT_ZOOM = 13;
 
   /* ── Distance slider sync ── */
   window.syncDist = function (val) {
     document.getElementById('distLabel').textContent = val + ' km';
-    document.getElementById('distInput').value = val;
+    document.getElementById('distInput').value       = val;
   };
 
   /* ── Open modal ── */
   window.openLocationMap = function () {
     document.getElementById('locationOverlay').classList.add('open');
-
-    // Small delay so the overlay is visible before Leaflet tries to size the map
     setTimeout(function () {
       if (!_map) {
         _initMap();
@@ -527,13 +632,9 @@ function buildQuery(array $overrides = []): string {
     _lat = pos.lat;
     _lng = pos.lng;
 
-    // Push values into the hidden form inputs
-    document.getElementById('latInput').value = _lat.toFixed(6);
-    document.getElementById('lngInput').value = _lng.toFixed(6);
-
-    // Make sure distance input has a value
-    var distSlider = document.getElementById('distSlider');
-    document.getElementById('distInput').value = distSlider.value;
+    document.getElementById('latInput').value  = _lat.toFixed(6);
+    document.getElementById('lngInput').value  = _lng.toFixed(6);
+    document.getElementById('distInput').value = document.getElementById('distSlider').value;
 
     // Update sidebar UI
     document.getElementById('locCoords').textContent =
@@ -542,9 +643,19 @@ function buildQuery(array $overrides = []): string {
     document.getElementById('mapBtnLabel').textContent = 'Change location';
     document.getElementById('openMapBtn').classList.add('is-set');
     document.getElementById('distanceSection').style.display = 'block';
+    document.getElementById('clearLocBtn').style.display     = 'inline-flex';
 
-    document.getElementById('filtersForm').submit();
     closeLocationMap();
+    document.getElementById('filtersForm').submit();
+  };
+
+  /* ── Clear location entirely ── */
+  window.clearLocation = function () {
+    document.getElementById('latInput').value  = '';
+    document.getElementById('lngInput').value  = '';
+    document.getElementById('distInput').value = '';
+    closeLocationMap();
+    document.getElementById('filtersForm').submit();
   };
 
   /* ── Initialise Leaflet map ── */
@@ -553,14 +664,13 @@ function buildQuery(array $overrides = []): string {
     var startLng = _lng !== null ? _lng : DEFAULT_LNG;
 
     _map = L.map('leafletMap', { zoomControl: true })
-              .setView([startLat, startLng], DEFAULT_ZOOM);
+             .setView([startLat, startLng], DEFAULT_ZOOM);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(_map);
 
-    // Custom pin icon (Leaflet default, no external dependency)
     var pinIcon = L.icon({
       iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -573,21 +683,19 @@ function buildQuery(array $overrides = []): string {
 
     _marker = L.marker([startLat, startLng], { draggable: true, icon: pinIcon }).addTo(_map);
 
-    // Update internal state whenever the pin is dragged
     _marker.on('dragend', function (e) {
       var p = e.target.getLatLng();
       _lat = p.lat;
       _lng = p.lng;
     });
 
-    // Click on map moves the pin
     _map.on('click', function (e) {
       _lat = e.latlng.lat;
       _lng = e.latlng.lng;
       _marker.setLatLng([_lat, _lng]);
     });
 
-    // If no stored location, try browser geolocation
+    // Browser geolocation only when no location is already stored
     if (_lat === null && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         function (pos) {
@@ -596,25 +704,19 @@ function buildQuery(array $overrides = []): string {
           _map.setView([_lat, _lng], 14);
           _marker.setLatLng([_lat, _lng]);
         },
-        function () {
-          // Permission denied or unavailable — keep default coords
-        }
+        function () { /* permission denied — keep default */ }
       );
     }
   }
 
   /* ── Close on backdrop click ── */
   document.getElementById('locationOverlay').addEventListener('click', function (e) {
-    if (e.target === this) {
-      closeLocationMap();
-    }
+    if (e.target === this) { closeLocationMap(); }
   });
 
-  /* ── Close on Escape key ── */
+  /* ── Close on Escape ── */
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      closeLocationMap();
-    }
+    if (e.key === 'Escape') { closeLocationMap(); }
   });
 
 }());

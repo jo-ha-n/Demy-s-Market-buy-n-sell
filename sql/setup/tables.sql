@@ -39,12 +39,7 @@ CREATE TABLE IF NOT EXISTS Item (
   title       VARCHAR(255)   NOT NULL,
   price       DECIMAL(12, 2) NOT NULL,
   description TEXT,
-<<<<<<< HEAD
   status      ENUM('available', 'sold', 'archived') NOT NULL DEFAULT 'available',
-=======
-  address     VARCHAR(255),
-  status      ENUM('available', 'pending', 'sold', 'archived') NOT NULL DEFAULT 'available',
->>>>>>> 4a3a82e7d7940f51d7586161735a4b13c06c528d
   created_at  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sellerID)   REFERENCES Users(userID)        ON DELETE CASCADE,
   FOREIGN KEY (categoryID) REFERENCES Category(categoryID)
@@ -203,3 +198,12 @@ GROUP BY
     u.email,
     c.categoryID,
     c.category_name;
+
+
+-- ── Cache ─────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS geocode_cache (
+  lat_lng   VARCHAR(30) PRIMARY KEY,   -- "14.4624,120.9645"
+  label     VARCHAR(255) NOT NULL,
+  cached_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
