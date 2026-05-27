@@ -47,7 +47,7 @@ function currentUser(): ?array {
     if (!isLoggedIn()) return null;
     $db  = getDB();
     $id  = (int) $_SESSION['userID'];
-    $stmt = $db->prepare('SELECT userID, email, username, role, address, contact_number, date_joined FROM Users WHERE userID = ?');
+    $stmt = $db->prepare('SELECT userID, email, username, role, contact_number, date_joined, coordinates FROM Users WHERE userID = ?');
     $stmt->bind_param('i', $id);
     $stmt->execute();
     return $stmt->get_result()->fetch_assoc();
