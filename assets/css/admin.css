@@ -1,4 +1,5 @@
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
       --accent:        #e05c1a;
       --accent-light:  #fdf0e8;
@@ -35,7 +36,14 @@
       background: var(--bg2); border-bottom: 1px solid var(--border);
       display: flex; align-items: center; padding: 0 20px; gap: 16px; z-index: 200;
     }
-    .topbar-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--accent); text-decoration: none; }
+    .topbar-logo { display: flex; align-items: center; text-decoration: none; }
+    .logo-img    { height: 28px; width: auto; display: none; transition: opacity .15s; }
+    [data-theme="light"] .topbar-logo .logo-black { display: block; }
+    [data-theme="light"] .topbar-logo:hover .logo-black { display: none; }
+    [data-theme="light"] .topbar-logo:hover .logo-hover { display: block; }
+    [data-theme="dark"]  .topbar-logo .logo-white { display: block; }
+    [data-theme="dark"]  .topbar-logo:hover .logo-white { display: none; }
+    [data-theme="dark"]  .topbar-logo:hover .logo-hover { display: block; }
     .topbar-title { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; color: var(--text-2); }
     .topbar-spacer { flex: 1; }
     .admin-badge-count {
