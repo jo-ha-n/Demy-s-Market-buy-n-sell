@@ -5,9 +5,6 @@ require_once __DIR__ . '/../../config/database.php';   // getDB(), currentUserID
 require_once __DIR__ . '/../../config/item_n_img.php'; // getItem(), getItems(), getItemImages(), getItemTags()
 require_once __DIR__ . '/../includes/helpers.php';  // h(), setFlash(), getFlash(), csrfToken(), verifyCsrf()
 
-// ── Resolve item ──────────────────────────────────────────────────────────────
-$itemID = isset($_GET['id']) ? (int) $_GET['id'] : 0;
-$item   = $itemID ? getItem($itemID) : null;
 
 // ── Resolve item ──────────────────────────────────────────────────────────────
 $itemID = isset($_GET['id']) ? (int) $_GET['id'] : 0;
@@ -561,6 +558,8 @@ function setRating(n) {
       alert('Network error — please try again.');
     }
   }
+})();
+
   // ── Auto-open conversation from ?open= param ──────────────────────────────────
   (async function autoOpen() {
     const params = new URLSearchParams(location.search);
@@ -580,7 +579,6 @@ function setRating(n) {
       }
     } catch(e) { console.error(e); }
   })();
-})();
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
